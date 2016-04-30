@@ -1,0 +1,17 @@
+Package: glmdr
+Version: 0.1
+Date: 2016-04-30
+Title: Exponential Family Generalized Linear Models Done Right
+Author: Charles J. Geyer <charlie@stat.umn.edu>.
+Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
+Depends: R (>= 3.0.0)
+Imports: stats
+ByteCompile: TRUE
+Description: Exponential family generalized linear models (binomial, poisson,
+    multinomial, and product multinomial response) done right in the sense
+    that solutions "at infinity" (in terms of canonical parameters) or
+    "on the boundary" (in terms of mean value parameters) are dealt with
+    correctly.  Functions for doing valid hypothesis tests and confidence
+    intervals even in "solutions at infinity" cases are included.
+License: MIT + file LICENSE
+URL: https://github.com/cjgeyer/glmdr

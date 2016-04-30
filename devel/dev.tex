@@ -1,0 +1,123 @@
+
+\documentclass[11pt]{article}
+
+\usepackage{natbib}
+
+\begin{document}
+
+\title{Design Document for GLMDR Package}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+We implement the stuff in \citet{geyer-gdor}, fixing it where necessary.
+We start with an R function just like the R function \texttt{glm} in
+the R core, except for the following differences
+\begin{itemize}
+\item It does solutions at infinity right!
+\item It only does exponential family models.  No quasi-likelihood.
+    No non-canonical link functions.  No non-discrete distributions.
+    That leaves only \texttt{binomial("logit")} and \texttt{poisson("log")}
+    of the families allowed for the R function \texttt{glm}.
+\item We might also want to do zero-inflated Poisson regression using
+    the aster parameterization so it is exponential family too.
+    But ignore this for the first version.  It would complicate things
+    to allow aster graph models, even one this simple.
+\item We certainly want to do multinomial and product multinomial response.
+    Unlike the approaches of the R functions \texttt{multinom} in the R
+    ``recommended'' (meaning in every R installation) packages \texttt{mgcv}
+    and \texttt{nnet} we don't have a special function to do that.
+    We just allow conditioning on certain marginals.
+    We condition on $M^T y$, where $M$ is the model matrix for a certain
+    conditioning formula.  If the conditioning formula is \verb@~ 1@, then
+    we are doing multinomial regression.  If it is a more complicated formula,
+    then product multinomial.
+\item In order for the latter to work correctly, we also have to handle
+    directions of constancy correctly.
+\end{itemize}
+The R core has the following methods for objects of class \texttt{"glm"}
+as of this writing (R-3.2.4).
+\begin{verbatim}
+add1.glm
+anova.glm
+confint.glm
+cooks.distance.glm
+deviance.glm
+drop1.glm
+effects.glm
+extractAIC.glm
+family.glm
+formula.glm
+influence.glm
+is.glm
+logLik.glm
+model.frame.glm
+nobs.glm
+predict.glm
+print.glm
+print.summary.glm
+residuals.glm
+rstandard.glm
+rstudent.glm
+summary.glm
+vcov.glm
+vcov.summary.glm
+weights.glm
+\end{verbatim}
+We definitely need the corresponding
+\begin{verbatim}
+anova.glmdr
+confint.glmdr
+extractAIC.glmdr
+predict.glmdr
+summary.glmdr
+print.summary.glmdr
+\end{verbatim}
+and maybe need
+\begin{verbatim}
+add1.glmdr
+drop1.glmdr
+vcov.glmdr
+vcov.summary.glmdr
+\end{verbatim}
+
+Start with the main model fitting function.  The signature for the R
+function \texttt{glm} is
+\begin{verbatim}
+glm(formula, family = gaussian, data, weights, subset, 
+    na.action, start = NULL, etastart, mustart, offset,
+    control = list(...), model = TRUE, method = "glm.fit",
+    x = FALSE, y = TRUE, contrasts = NULL, ...) 
+\end{verbatim}
+How much of that do we want?  We don't need \texttt{weights}.
+We don't need \texttt{method}.  I guess we allow \texttt{contrasts}.
+I have never used that, but it seems usable.  For family, we only
+allow \texttt{"binomial"} or \texttt{"poisson"}.  Nothing else is
+relevant.
+
+Thus our signature seems to be
+\begin{verbatim}
+glmdr(formula, conditioner = NULL, family = c("poisson", "binomial"),
+    data, subset, na.action, start = NULL, etastart, mustart,
+    offset, control = list(...), model = TRUE,
+    x = FALSE, y = TRUE, contrasts = NULL, ...) 
+\end{verbatim}
+
+\begin{thebibliography}{}
+
+\bibitem[Geyer(2009b)]{geyer-gdor}
+Geyer, Charles J. (2009b).
+\newblock Likelihood inference in exponential families and directions
+    of recession.
+\newblock \emph{Electronic Journal of Statistics}, \textbf{3}, 259--289.
+
+\bibitem[Geyer, et~al.(2007)Geyer, Wagenius, and Shaw]{geyer-wagenius-shaw}
+Geyer, C.~J., Wagenius, S., and Shaw, R.~G. (2007).
+\newblock Aster models for life history analysis.
+\newblock \emph{Biometrika}, \textbf{94}, 415--426.
+
+\end{thebibliography}
+
+\end{document}
+
