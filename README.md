@@ -18,5 +18,5 @@ in terms of mean value parameters, following
 
 > Geyer, Charles J. (2009).
 > Likelihood inference in exponential families and directions of recession.
-> *Electronic Journal of Statistics*, **3**, 259-289. 
+> [*Electronic Journal of Statistics*](http://projecteuclid.org/euclid.ejs/1239716414), **3**, 259-289. 
 
