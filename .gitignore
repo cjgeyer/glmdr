@@ -3,3 +3,4 @@
 *.dvi
 *.pdf
 *.Rcheck
+*.Rout

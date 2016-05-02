@@ -21,7 +21,7 @@
 }
 \usage{
 glmdr(formula, conditioner, family = c("poisson", "binomial"),
-    data, subset, na.action, start = NULL, etastart, mustart,
+    data, subset, na.action, start = NULL,
     offset, control = list(\dots), model = TRUE,
     x = FALSE, y = TRUE, contrasts = NULL, \dots)
 }
@@ -67,11 +67,8 @@ glmdr(formula, conditioner, family = c("poisson", "binomial"),
     default is \code{\link{na.omit}}.  Another possible value is
     \code{NULL}, no action.  Value \code{\link{na.exclude}} can be useful.}
 
-  \item{start}{starting values for the parameters in the linear predictor.}
-
-  \item{etastart}{starting values for the linear predictor.}
-
-  \item{mustart}{starting values for the vector of means.}
+  \item{start}{starting values for the submodel canonical parameter vector
+    (a. k. a., coefficients).}
 
   \item{offset}{this can be used to specify an \emph{a priori} known
     component to be included in the linear predictor during fitting.
