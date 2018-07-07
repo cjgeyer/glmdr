@@ -16,7 +16,16 @@ It provides valid hypothesis tests and confidence intervals even when the
 MLE are "at infinity" in terms of canonical parameters or "on the boundary"
 in terms of mean value parameters, following
 
-Geyer, Charles J. (2009).
-Likelihood inference in exponential families and directions of recession.
-[*Electronic Journal of Statistics*, **3**, 259-289](http://projecteuclid.org/euclid.ejs/1239716414).
+Geyer, Charles J. (2009).  
+Likelihood inference in exponential families and directions of recession.  
+*Electronic Journal of Statistics*, **3**, 259-289.  
+http://projecteuclid.org/euclid.ejs/1239716414.
+
+and
+
+Eck, Daniel J., and Geyer, Charles J. (submitted).  
+Computationally efficient likelihood inference
+    in exponential families when the maximum likelihood estimator
+    does not exist.  
+https://arxiv.org/abs/1803.11240
 
