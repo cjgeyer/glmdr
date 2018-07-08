@@ -5,6 +5,7 @@
  data(sports)
 
  gout <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
+ gout <- gout$gout
  summary(gout)
 
  # extract model matrix, response vector, and offset vector
@@ -26,6 +27,8 @@
  mlogl <- glmdr:::make.mlogl(mymodmat, resp, offs, "binomial")
 
  beta.test <- coefficients(gout)[! outies]
+ # we don't want to test where the gradient is nearly zero
+ beta.test <- 0.9 * beta.test
 
  mout <- mlogl(beta.test)
 
@@ -53,9 +56,8 @@
  data(catrec)
 
  gout <- glmdr(y ~ 0 + (.)^3, family = "poisson", data = catrec)
+ gout <- gout$gout
  summary(gout)
-
- ########## REVISED DOWN TO HERE ##########
 
  # extract model matrix, response vector, and offset vector
 
@@ -76,6 +78,8 @@
  mlogl <- glmdr:::make.mlogl(mymodmat, resp, offs, "poisson")
 
  beta.test <- coefficients(gout)[! outies]
+ # we don't want to test where the gradient is nearly zero
+ beta.test <- 0.9 * beta.test
 
  mout <- mlogl(beta.test)
 

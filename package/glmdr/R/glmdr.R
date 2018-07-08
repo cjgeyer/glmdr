@@ -139,5 +139,63 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
         warning = function(w)
             if(grepl("fitted .* numerically 0 .* occurred", w$message))
                 invokeRestart("muffleWarning"))
+
+    # extract model matrix, response vector, and offset vector
+    modmat <- gout$x
+    mf <- model.frame(gout)
+    resp <- model.response(mf)
+    offs <- model.offset(mf)
+
+    # have to deal with dropped predictors
+    outies <- is.na(coefficients(gout))
+    modmat.drop <- modmat[ , ! outies]
+
+    # we don't trust the computer arithmetic in R function glm
+    # so we finish off by running R function trust from R package trust
+    mlogl <- make.mlogl(modmat.drop, resp, offs, family)
+    beta.drop <- coefficients(gout)[! outies]
+    tout <- trust(mlogl, beta.drop, rinit = 1, rmax = 10,
+        fterm = 1e-10, mterm = 1e-10)
+
+    fish <- tout$hessian
+    eout <- eigen(fish, symmetric = TRUE)
+    sval <- pmax(eout$values, 0)
+    sval <- sqrt(sval)
+    r <- rankMatrix(fish, sval = sval, method = "maybeGrad")
+
+    if (r == ncol(fish)) {
+        # nothing left to do
+        # MLE exists in the conventional sense
+        return(structure(list(gout = gout), class = "glmdr"))
+    }
+
+    if (r == 0) {
+        # nearly nothing left to do
+        # LCM is completely degenerate
+        linearity <- rep(FALSE, nrow(modmat))
+        return(structure(list(gout = gout, linearity = linearity),
+            class = "glmdr"))
+    }
+
+    # at this point we have 0 < r < ncol(fish) = ncol(modmat)
+
+    nulls <- eout$vectors[ , 1:ncol(fish) > r, drop = FALSE]
+    nulls.saturated <- modmat %*% nulls
+    linearity <- zapsmall(rowSums(nulls.saturated^2)) == 0
+
+    # now we need to do the MLE for the LCM
+    # this is complicated by there may having been a subset argument originally
+    # it seems that (cannot find out where this is documented
+
+    subset.lcm <- as.integer(rownames(modmat))
+    subset.lcm <- subset.lcm[linearity]
+
+    # call glm again
+
+    call.glm$subset <- subset.lcm
+    gout.lcm <- eval(call.glm, parent.frame())
+
+    return(structure(list(gout = gout, lcm = gout.lcm,
+        linearity = linearity, nulls = nulls), class = "glmdr"))
 }
 

@@ -22,6 +22,7 @@ Type 'q()' to quit R.
 >  data(sports)
 > 
 >  gout <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
+>  gout <- gout$gout
 >  summary(gout)
 
 Call:
@@ -132,6 +133,8 @@ NULL
 >  mlogl <- glmdr:::make.mlogl(mymodmat, resp, offs, "binomial")
 > 
 >  beta.test <- coefficients(gout)[! outies]
+>  # we don't want to test where the gradient is nearly zero
+>  beta.test <- 0.9 * beta.test
 > 
 >  mout <- mlogl(beta.test)
 > 
@@ -162,6 +165,7 @@ NULL
 >  data(catrec)
 > 
 >  gout <- glmdr(y ~ 0 + (.)^3, family = "poisson", data = catrec)
+>  gout <- gout$gout
 >  summary(gout)
 
 Call:
@@ -248,8 +252,6 @@ AIC: 538.69
 
 Number of Fisher Scoring iterations: 5
 
-> 
->  ########## REVISED DOWN TO HERE ##########
 > 
 >  # extract model matrix, response vector, and offset vector
 > 
@@ -1192,6 +1194,8 @@ NULL
 >  mlogl <- glmdr:::make.mlogl(mymodmat, resp, offs, "poisson")
 > 
 >  beta.test <- coefficients(gout)[! outies]
+>  # we don't want to test where the gradient is nearly zero
+>  beta.test <- 0.9 * beta.test
 > 
 >  mout <- mlogl(beta.test)
 > 
@@ -1213,8 +1217,8 @@ NULL
 > 
 >  all.equal(mout$hessian, myhess)
 [1] TRUE
->  
+> 
 > 
 > proc.time()
    user  system elapsed 
-  0.772   0.076   0.840 
+  1.744   0.104   1.842 
