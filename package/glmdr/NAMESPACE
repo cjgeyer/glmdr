@@ -1,2 +1,2 @@
 export(glmdr)
-importFrom(stats, lm, glm)
+importFrom(stats, glm)

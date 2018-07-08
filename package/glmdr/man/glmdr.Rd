@@ -13,43 +13,26 @@
 \concept{direction of recession}
 \concept{direction of constancy}
 \description{
-  \code{glmdr} is used to fit exponential family generalized affine models,
-  specified by giving a symbolic description of the canonical parameter and
-  a description of the response distribution.  Multinomial and product
-  multinomial response are handled as conditional distributions of Poisson
-  response.
+  Fit exponential family generalized linear models (logistic regression
+  or Poisson regression with log link), correctly, even when the maximum
+  likelihood estimate does not exist in the conventional sense.
+  Log-linear models for categorical data analysis are also fit correctly
+  by considering them as Poisson regression.
 }
 \usage{
-glmdr(formula, conditioner, family = c("poisson", "binomial"),
-    data, subset, na.action, start = NULL,
-    offset, control = list(\dots), model = TRUE,
-    x = FALSE, y = TRUE, contrasts = NULL, \dots)
+glmdr(formula, family = c("binomial", "poisson"), data,
+    subset, na.action, offset, contrasts = NULL)
 }
 \arguments{
-  \item{formula}{an object of class \code{"\link[stats]{formula}"},
-    which is a symbolic description of the model to be fitted.
+  \item{formula}{an object of class \code{"\link{formula}"} (or one that
+    can be coerced to that class): a symbolic description of the
+    model to be fitted.
     See \code{\link[stats]{glm}} and \code{\link[stats]{formula}}
     for description of the R formula mini-language.}
 
-  \item{conditioner}{another object of class \code{"\link[stats]{formula}"}
-    or \code{NULL} that specifies the conditioning to turn Poisson sampling
-    into multinomial or product multinomial sampling.  \code{NULL} means
-    no conditioning.  If the formula is non-null, it is converted into a model
-    matrix \code{m} and then we condition on \code{t(m) \%*\% y}, where
-    \code{y} is the response vector.  If \code{family = "poisson"}
-    (the default), then \code{conditioner = ~ 1} does multinomial response,
-    and \code{conditioner = ~ gender} conditions on the marginal for
-    \code{gender}, assuming \code{gender} is a covariate.  It is an
-    error if \code{family = "binomial"} and \code{conditioner} is non-null.}
+  \item{family}{a character string specifying the family, must be one of
+    \code{"binomial"} (default) or \code{"poisson"}.  May be abbreviated.}
 
-  \item{family}{a description of the response distribution before conditioning.
-    Only discrete exponential family distributions are allowed (since only
-    they have problems with solutions at infinity and theory that allows
-    such to be detected and handled correctly.  So only \code{"poisson"} and
-    \code{"binomial"} are allowed, and these mean Poisson with log link
-    and binomial with logit link.  As explained under the previous item,
-    we can get multinomial response and product multinomial response by
-    conditioning the Poisson.}
 
   \item{data}{an optional data frame, list or environment (or object
     coercible by \code{\link{as.data.frame}} to a data frame) containing
@@ -67,9 +50,6 @@ glmdr(formula, conditioner, family = c("poisson", "binomial"),
     default is \code{\link{na.omit}}.  Another possible value is
     \code{NULL}, no action.  Value \code{\link{na.exclude}} can be useful.}
 
-  \item{start}{starting values for the submodel canonical parameter vector
-    (a. k. a., coefficients).}
-
   \item{offset}{this can be used to specify an \emph{a priori} known
     component to be included in the linear predictor during fitting.
     This should be \code{NULL} or a numeric vector of length equal to
@@ -77,22 +57,8 @@ glmdr(formula, conditioner, family = c("poisson", "binomial"),
     included in the formula instead or as well, and if more than one is
     specified their sum is used.  See \code{\link{model.offset}}.}
 
-  \item{control}{a list of parameters for controlling the fitting
-    process.  For \code{glm.fit} this is passed to
-    \code{\link{glm.control}}.}
-
-  \item{model}{a logical value indicating whether \emph{model frame}
-    should be included as a component of the returned value.}
-
-  \item{x, y}{logical values indicating whether the response vector and model
-    matrix used in the fitting process should be returned as components
-    of the returned value.}
-
   \item{contrasts}{an optional list. See the \code{contrasts.arg}
     of \code{model.matrix.default}.}
-
-  \item{\dots}{arguments to be used to form the default
-    \code{control} argument if it is not supplied directly.}
 }
 \details{
    to be written
@@ -146,10 +112,15 @@ glmdr(formula, conditioner, family = c("poisson", "binomial"),
   \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.
 }
 \references{
-  Geyer, C. J. (2009).
+  Geyer, C. J. (2009)
   Likelihood inference in exponential families and directions of recession.
   \emph{Electronic Journal of Statistics}, \bold{3}, 259--289.
 
+  Eck, D.~J. and Geyer, C.~J. (submitted)
+  Computationally efficient likelihood inference
+    in exponential families when the maximum likelihood estimator
+    does not exist.
+  \url{https://arxiv.org/abs/1803.11240}
 }
 
 \examples{

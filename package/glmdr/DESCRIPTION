@@ -6,6 +6,7 @@ Author: Charles J. Geyer <charlie@stat.umn.edu>.
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 3.0.0)
 Imports: stats
+Suggests: numDeriv
 ByteCompile: TRUE
 Description: Exponential family generalized linear models (binomial, poisson,
     multinomial, and product multinomial response) done right in the sense

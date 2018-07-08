@@ -1,0 +1,37 @@
+# to add extra compiler warnings
+# note that file myMakevars must be a copy of glmdr/src/Makevars
+#     with extra stuff added
+export R_MAKEVARS_USER=`pwd`/myMakevars
+# this is totally unnecessary unless and until we have C code in this package
+
+# if version number has changed
+rm *.tar.gz
+
+# basic checking
+R CMD build glmdr
+R CMD check glmdr_*.tar.gz
+
+# build for CRAN submission
+R CMD build --compact-vignettes glmdr
+# this check must be done by R-devel before CRAN submission
+~/local/devel/bin/R CMD check --as-cran glmdr_*.tar.gz
+
+# look at files packed in tarball for any weird stuff
+tar ztvf glmdr_*.tar.gz | sed 's/^.*glmdr\///' | sort
+
+# export usually not necessary
+export VALGRIND_OPTS="--tool=memcheck"
+R CMD check --no-vignettes --use-valgrind glmdr
+
+# to install
+R CMD INSTALL glmdr_*.tar.gz
+
+# to count lines of code
+cloc glmdr_*.tar.gz
+# except the version with Ubuntu 14.04 doesn't understand R
+# get current version, which is just perl script
+# somewhere, say in ~/bin if that is in your path do
+wget https://github.com/AlDanial/cloc/releases/download/1.74/cloc-1.74.pl
+mv cloc-1.74.pl cloc
+chmod +x cloc
+Then above will do the right thing
