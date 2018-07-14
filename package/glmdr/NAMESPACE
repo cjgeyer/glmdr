@@ -7,3 +7,6 @@ importFrom(stats, model.offset)
 importFrom(stats, model.response)
 importFrom(trust, trust)
 importFrom(Matrix, rankMatrix)
+
+S3method(print, summary.glmdr)
+S3method(summary, glmdr)

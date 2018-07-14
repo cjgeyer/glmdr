@@ -61,52 +61,62 @@ glmdr(formula, family = c("binomial", "poisson"), data,
     of \code{model.matrix.default}.}
 }
 \details{
-   to be written
+  In an exponential family generalized linear model (GLM) the maximum
+  likelihood estimate need not exist.  This function detects this
+  situation and does the right thing in that case.  For the binomial
+  and Poisson models fit by this function the MLE always exists in
+  the Barndorff-Nielsen completion of the original model (OM), and
+  is always the MLE in the limiting conditional model (LCM), which
+  conditions the OM on some components of the response vector being
+  equal to their observed values.
+
+  An LCM can be thought of in two ways.  It is obtained by conditioning
+  the OM as just described.  It is also obtained by taking limits in
+  the OM as parameters go to infinity.  See Geyer (2009) for further
+  description.
+
+  This function detects whether the MLE is in the OM or in an LCM,
+  determines which LCM (which components of the response vector
+  are conditioned), and fits the MLE in the LCM.
+
+  The function \code{\link{summary}} (i.e., \code{\link{summary.glmdr}}) can
+  be used to obtain or print a summary of the results;
+  the function \code{\link{anova}} (i.e., \code{\link{anova.glmdr}})
+  can do likelihood ratio tests of nested models that are valid even
+  when some MLEs do not exist in the conventional sense;
+  the function \code{\link{confint}} (i.e., \code{\link{confint.glmdr}})
+  can do confidence intervals for canonical or mean-value parameters,
+  which are necessarily one-sided for parameters corresponding to
+  components of the response conditioned in the LCM to be equal to their
+  observed values.
 }
 
 \value{
   \code{glmdr} returns an object of class inheriting from \code{"glmdr"}.
 
-  The function \code{\link{summary}} (i.e., \code{\link{summary.glmdr}}) can
-  be used to obtain or print a summary of the results,
-  the function \code{\link{anova}} (i.e., \code{\link{anova.glmdr}})
-  to do likelihood ratio tests of nested models,
-  the function \code{\link{confint}} (i.e., \code{\link{confint.glmdr}})
-  to do confidence intervals for canonical or mean-value parameters.
-
-  An object of class \code{"glmdr"} is a list containing at least the
+  An object of class \code{"glmdr"} is a list containing some or all of the
   following components:
 
-  \item{coefficients}{a named vector of coefficients}
-  \item{gdor}{a named vector that is a generic direction of recession}
-  \item{fitted.values}{the MLE saturated model mean value parameter vector}
-  \item{family}{the argument \code{family}}
-  \item{linear.predictors}{the MLE saturated model canonical parameter vector}
-  \item{deviance}{up to a constant, minus twice the maximized
-    log likelihood.  Where sensible, the constant is chosen so that a
-    saturated model has deviance zero.}
-  \item{aic}{Akaike information criterion,
-    minus twice the maximized log-likelihood plus twice the number of
-    parameters}
-  \item{y}{if requested (the default) the \code{y} vector
-    used. (It is a vector even for a binomial model.)}
-  \item{x}{if requested, the model matrix.}
-  \item{model}{if requested (the default), the model frame.}
-  \item{converged}{logical. Was the IWLS algorithm judged to have converged?}
-  \item{boundary}{logical. Is the fitted value on the boundary of the
-    attainable values?}
-  \item{call}{the matched call.}
-  \item{formula}{the formula supplied.}
-  \item{terms}{the \code{\link{terms}} object used.}
-  \item{data}{the \code{data argument}.}
-  \item{offset}{the offset vector used.}
-  \item{control}{the value of the \code{control} argument used.}
-  \item{contrasts}{(where relevant) the contrasts used.}
-  \item{xlevels}{(where relevant) a record of the levels of the factors
-    used in fitting.}
-  \item{na.action}{(where relevant) information returned by
-    \code{\link{model.frame}} on the special handling of \code{NA}s.}
-
+  \item{gout}{the result of invoking \code{\link{glm}} with the arguments
+      to this function.  May or may not be valid.  See \code{\link[stats]{glm}}
+      for the components of this object.}
+  \item{linearity}{a logical vector that says which components of the response
+      are free (not conditioned to be equal to their observed values) in the
+      LCM.  Not present when the MLE exists in the OM.}
+  \item{lcm}{the result of invoking \code{\link{glm}} with the arguments
+      to this function and argument \code{subset} set to provide the
+      conditioning of the LCM.  See \code{\link[stats]{glm}}
+      for the components of this object.
+      Not present when the MLE exists in the OM or when all components
+      of the component \code{linearity} are \code{FALSE}, in which case
+      the LCM is completely degenerate, conditioning all components of
+      the response vector equal to their observed values, and has no
+      identifiable parameters to estimate.}
+  \item{nulls}{a matrix, the columns of which span the null space of the
+      Fisher information matrix for the OM evaluated at the MLE for the LCM
+      (a limit in which some parameters have gone to infinity).  T
+      This determines the LCM, as explained in Eck and Geyer (submitted),
+      but does not need to be interpreted by ordinary users.}
 }
 \seealso{
   \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.
@@ -124,7 +134,10 @@ glmdr(formula, family = c("binomial", "poisson"), data,
 }
 
 \examples{
-2 + 2
+# example of section 2.4 in Geyer (2009)
+data(sports)
+out <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
+summary(out)
 }
 \keyword{models}
 \keyword{regression}

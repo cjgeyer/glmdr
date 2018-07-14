@@ -163,6 +163,9 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     sval <- sqrt(sval)
     r <- rankMatrix(fish, sval = sval, method = "maybeGrad")
 
+    cat("DEBUG: sval =", sval, "\n")
+    cat("DEBUG: rank =", r, "\n")
+
     if (r == ncol(fish)) {
         # nothing left to do
         # MLE exists in the conventional sense
@@ -187,7 +190,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # this is complicated by there may having been a subset argument originally
     # it seems that (cannot find out where this is documented
 
-    subset.lcm <- as.integer(rownames(modmat))
+    subset.lcm <- rownames(modmat)
     subset.lcm <- subset.lcm[linearity]
 
     # call glm again
