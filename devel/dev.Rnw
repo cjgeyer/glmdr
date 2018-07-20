@@ -1,7 +1,13 @@
 
 \documentclass[11pt]{article}
 
+\usepackage{indentfirst}
 \usepackage{natbib}
+\usepackage{url}
+
+\newcommand{\REVISED}{\begin{center}\LARGE REVISED DOWN TO HERE\end{center}}
+
+%\VignetteEngine{knitr::knitr}
 
 \begin{document}
 
@@ -11,7 +17,10 @@
 
 \maketitle
 
-We implement the stuff in \citet{geyer-gdor}, fixing it where necessary.
+\section{Introduction}
+
+We implement the stuff in \citet{geyer-gdor} and \citet{eck-geyer},
+fixing it where necessary.
 We start with an R function just like the R function \texttt{glm} in
 the R core, except for the following differences
 \begin{itemize}
@@ -21,93 +30,109 @@ the R core, except for the following differences
     That leaves only \texttt{binomial("logit")} and \texttt{poisson("log")}
     of the families allowed for the R function \texttt{glm}.
 \item We might also want to do zero-inflated Poisson regression using
-    the aster parameterization so it is exponential family too.
+    the aster parameterization \citep*{geyer-wagenius-shaw}
+    so it is exponential family too.
     But ignore this for the first version.  It would complicate things
     to allow aster graph models, even one this simple.
 \item We certainly want to do multinomial and product multinomial response.
     Unlike the approaches of the R functions \texttt{multinom} in the R
-    ``recommended'' (meaning in every R installation) packages \texttt{mgcv}
-    and \texttt{nnet} we don't have a special function to do that.
-    We just allow conditioning on certain marginals.
-    We condition on $M^T y$, where $M$ is the model matrix for a certain
-    conditioning formula.  If the conditioning formula is \verb@~ 1@, then
-    we are doing multinomial regression.  If it is a more complicated formula,
-    then product multinomial.
-\item In order for the latter to work correctly, we also have to handle
-    directions of constancy correctly.
+    recommended packages \texttt{mgcv}
+    and \texttt{nnet}, we don't need a special function to fit these
+    models.
+
+    As is well known \citep[Section~8.6.7]{agresti}, the 
+    maximum likelihood estimator (MLE) of the mean value parameter
+    vector is the same whether the sampling scheme is Poisson,
+    multinomial or product multinomial.  As is not so well known
+    \citep[Section~3.17]{geyer-gdor} the MLE for the canonical parameter
+    vector is also the same, when we use the same parameterization for all
+    three models.  Then the MLE for Poisson is unique (if the model matrix
+    has full column rank) but the MLE for multinomial or product multinomial
+    will not be unique, but the unique MLE for Poisson is also a (non-unique)
+    MLE for multinomial or product multinomial.
+
+\item We do need a special argument for the function that makes one-sided
+    confidence intervals when solutions at infinity exist, because these
+    are non-asymptotic and depend on the exact sampling distribution
+    \citep[Sections~3.16 and~3.17]{geyer-gdor}.
+
+    Since multinomial and product multinomial models
+    can be derived from Poisson models by conditioning on the sum
+    of the response vector (multinomial) or on the sums of components
+    of the response vector over elements of a partition of its index set
+    (product multinomial), in our confidence interval function or functions
+    we just have an argument that describes such conditioning (if wanted).
+
 \end{itemize}
+
+<<options-width,include=FALSE,echo=FALSE>>=
+options(keep.source = TRUE, width = 60)
+@
+
 The R core has the following methods for objects of class \texttt{"glm"}
-as of this writing (R-3.2.4).
+as of this writing.
+<<methods>>=
+R.Version()$version.string
+.S3methods(class = "glm")
+.S4methods(class = "glm")
+@
+Some of these methods make no sense for the models fit by this package
+(described above)
+We definitely need methods for
 \begin{verbatim}
-add1.glm
-anova.glm
-confint.glm
-cooks.distance.glm
-deviance.glm
-drop1.glm
-effects.glm
-extractAIC.glm
-family.glm
-formula.glm
-influence.glm
-is.glm
-logLik.glm
-model.frame.glm
-nobs.glm
-predict.glm
-print.glm
-print.summary.glm
-residuals.glm
-rstandard.glm
-rstudent.glm
-summary.glm
-vcov.glm
-vcov.summary.glm
-weights.glm
+anova
+confint
+predict
+summary
+print.summary
 \end{verbatim}
-We definitely need the corresponding
+We may consider others later.
+
+\section{Model Fitting Function}
+
+\subsection{Signature}
+
+The signature for the R function \texttt{glm} is
+<<signature-glm>>=
+args(glm)
+@
+
+Some of these arguments have no use for the kind of models fit by this
+package or are so seldom used that we can omit them.  We start with the
+following signature.
 \begin{verbatim}
-anova.glmdr
-confint.glmdr
-extractAIC.glmdr
-predict.glmdr
-summary.glmdr
-print.summary.glmdr
-\end{verbatim}
-and maybe need
-\begin{verbatim}
-add1.glmdr
-drop1.glmdr
-vcov.glmdr
-vcov.summary.glmdr
+glmdr(formula, family = c("binomial", "poisson"), data,
+    subset, na.action, offset, contrasts = NULL)
 \end{verbatim}
 
-Start with the main model fitting function.  The signature for the R
-function \texttt{glm} is
-\begin{verbatim}
-glm(formula, family = gaussian, data, weights, subset, 
-    na.action, start = NULL, etastart, mustart, offset,
-    control = list(...), model = TRUE, method = "glm.fit",
-    x = FALSE, y = TRUE, contrasts = NULL, ...) 
-\end{verbatim}
-How much of that do we want?  We don't need \texttt{weights}.
-We don't need \texttt{method}.  I guess we allow \texttt{contrasts}.
-I have never used that, but it seems usable.  For family, we only
-allow \texttt{"binomial"} or \texttt{"poisson"}.  Nothing else is
-relevant.
+\subsection{Initial Fit}
 
-Thus our signature seems to be
-\begin{verbatim}
-glmdr(formula, conditioner = NULL, family = c("poisson", "binomial"),
-    data, subset, na.action, start = NULL, etastart, mustart,
-    offset, control = list(...), model = TRUE,
-    x = FALSE, y = TRUE, contrasts = NULL, ...) 
-\end{verbatim}
+Our function then immediately calls R function \texttt{stats::glm} with
+the same arguments (using \texttt{match.call} and \texttt{eval}) except
+we add the argument \verb@x = TRUE@ so that we get the model matrix.
+
+\subsection{Polish Fit}
+
+We don't trust that the computer arithmetic in R function \texttt{glm}
+is careful enough to really push the accuracy.  So we implement our
+own algorithm to maximize the likelihood some more.  Since the solution
+may be at infinity, we do Newton iterations safeguarded by line search,
+terminating the line search so that all of our steps are uphill.
+
+We also implement a function that calculates the log likelihood and two
+derivatives very carefully, to avoid overflow and catastrophic cancellation.
+
+\subsection{Polishing}
 
 \begin{thebibliography}{}
 
-\bibitem[Geyer(2009b)]{geyer-gdor}
-Geyer, Charles J. (2009b).
+\bibitem[Agresti(2013)]{agresti}
+Agresti, A. (2013).
+\newblock \emph{Categorical Data Analysis}, third edition.
+\newblock John Wiley \& Sons, Hoboken, NJ.
+
+\bibitem[Geyer(2009)]{geyer-gdor}
+Geyer, Charles J. (2009).
 \newblock Likelihood inference in exponential families and directions
     of recession.
 \newblock \emph{Electronic Journal of Statistics}, \textbf{3}, 259--289.
@@ -116,6 +141,13 @@ Geyer, Charles J. (2009b).
 Geyer, C.~J., Wagenius, S., and Shaw, R.~G. (2007).
 \newblock Aster models for life history analysis.
 \newblock \emph{Biometrika}, \textbf{94}, 415--426.
+
+\bibitem[Eck and Geyer(submitted)]{eck-geyer}
+Eck, D.~J. and Geyer, C.~J. (submitted).
+\newblock Computationally efficient likelihood inference
+    in exponential families when the maximum likelihood estimator
+    does not exist.
+\newblock \url{https://arxiv.org/abs/1803.11240}.
 
 \end{thebibliography}
 

@@ -116,6 +116,39 @@ make.mlogl <- function(modmat, response, offset, family)
     )
 }
 
+# Taylor series for derivative is
+#
+#     del l(beta) = del l(beta0) + del^2 l(beta0) (beta - beta0) + error
+#
+# so newton step is 
+#
+#     beta = beta0 - [ del^2 l(beta0) ]^{- 1} del l(beta0)
+#
+# We know that
+# 
+#     f(s) = l(beta0 + s (beta - beta0))
+#
+# is convex function so
+#
+#     f'(s) = < del l(beta0 + s (beta - beta0)), beta - beta0 >
+#
+# is increasing function.  We find zero of this function to make our step
+
+newton <- function(beta, mlogl)
+{
+    mout <- mlogl(beta)
+    step.newt <- (- solve(mout$hessian, mout$gradient))
+
+    linesearchfun <- function(s) {
+         mout <- mlogl(beta + s * step.newt)
+         sum(mout$gradient, step.newt)
+    }
+
+    uout <- uniroot(linesearchfun, interval = c(0, 1),  extendInt = "upX",
+        tol = sqrt(.Machine$double.eps))
+    beta + uout$root * step.newt
+}
+
 glmdr <- function(formula, family = c("binomial", "poisson"), data,
     subset, na.action, offset, contrasts = NULL)
 {
@@ -149,15 +182,16 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # have to deal with dropped predictors
     outies <- is.na(coefficients(gout))
     modmat.drop <- modmat[ , ! outies]
-
-    # we don't trust the computer arithmetic in R function glm
-    # so we finish off by running R function trust from R package trust
-    mlogl <- make.mlogl(modmat.drop, resp, offs, family)
     beta.drop <- coefficients(gout)[! outies]
-    tout <- trust(mlogl, beta.drop, rinit = 1, rmax = 10,
-        fterm = 1e-10, mterm = 1e-10)
 
-    fish <- tout$hessian
+    # do several newton-with-line-search iterations
+
+    mlogl <- make.mlogl(modmat.drop, resp, offs, family)
+    for (i in 1:2)
+        beta.drop <- newton(beta.drop, mlogl)
+
+    mout <- mlogl(beta.drop)
+    fish <- mout$hessian
     eout <- eigen(fish, symmetric = TRUE)
     sval <- pmax(eout$values, 0)
     sval <- sqrt(sval)

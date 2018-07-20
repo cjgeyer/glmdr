@@ -5,7 +5,6 @@ importFrom(stats, glm)
 importFrom(stats, model.frame)
 importFrom(stats, model.offset)
 importFrom(stats, model.response)
-importFrom(trust, trust)
 importFrom(Matrix, rankMatrix)
 
 S3method(print, summary.glmdr)

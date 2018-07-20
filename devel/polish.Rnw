@@ -1,0 +1,521 @@
+
+\documentclass[11pt]{article}
+
+\usepackage{indentfirst}
+\usepackage{natbib}
+\usepackage{url}
+
+\newcommand{\REVISED}{\begin{center}\LARGE REVISED DOWN TO HERE\end{center}}
+
+%\VignetteEngine{knitr::knitr}
+
+\begin{document}
+
+\title{Polishing GLM Fits}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+<<options-width,include=FALSE,echo=FALSE>>=
+options(keep.source = TRUE, width = 60)
+@
+
+\section{Introduction}
+
+We want reported MLE and Fisher information better than what R
+function \texttt{glm} outputs with its default tolerance.
+We do not believe its computations are sufficiently accurate
+(coping well with inexactness of computer arithmetic) to set its
+tolerance very close to zero.
+
+We will do better on our own.
+R function \verb@glmdr:::make.mlogl@ computes accurately minus
+the log likelihood
+and two derivatives avoiding overflow, underflow, catastrophic cancellation,
+and other problems of inexact computer arithmetic.
+
+\section{R}
+
+<<libraries>>=
+library(glmdr, lib.loc = "../package/glmdr.Rcheck")
+@
+
+\begin{itemize}
+\item The version of R used to make this document is \Sexpr{getRversion()}.
+\item The version of the \texttt{glmdr} package used to make this document is
+    \Sexpr{packageVersion("glmdr")}.
+\end{itemize}
+
+\section{Example I}
+
+\subsection{Fit Using R Function \texttt{glm}}
+
+This is the complete separation example of Agresti (see help for this dataset
+for source).
+<<example-i-glm>>=
+data(complete)
+gout <- glm(y ~ x, family = "binomial", data = complete,
+    x = TRUE)
+summary(gout)
+@
+% compares OK with 8931 handout infinity.pdf
+
+\subsection{Fisher Information Matrix}
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-i-glm-fish>>=
+# extract model matrix, response vector, and offset vector
+modmat <- gout$x
+mf <- model.frame(gout)
+resp <- model.response(mf)
+offs <- model.offset(mf)
+
+# calculate minus log likelihood and two derivatives
+mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
+mout <- mlogl(coefficients(gout))
+@
+
+Check that hessian is correct.
+<<example-i-check-fish>>=
+invlogit <- function(theta) ifelse(theta < 0,
+    exp(theta) / (1 + exp(theta)),
+    1 / (1 + exp(- theta)))
+theta.glm <- predict(gout)
+p.glm <- invlogit(theta.glm)
+q.glm <- invlogit(- theta.glm)
+fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
+all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+@
+
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-i-fish-eigen>>=
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Compare to default tolerance for R function \texttt{all.equal}.
+<<example-i-how-small>>=
+args(getS3method("all.equal", "numeric"))
+sqrt(.Machine$double.eps)
+@
+
+According to R function \texttt{all.equal} we do not have both
+eigenvalues equal to zero.
+
+\subsection{Newton Step}
+
+Find Newton step.
+<<example-i-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+newt.step
+@
+
+\subsection{Direction of Recession}
+
+Could this possibly be a direction of recession (DOR)?
+
+Map to saturated model canonical parameter space.
+<<example-i-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+newt.step.sat
+@
+
+This is obviously a DOR for this toy problem.  In general, we need code
+to check.  The check here only works for Bernoulli regression, not
+general binomial regression.  We also do not deal with zero components
+(possibly computed inexactly) of \texttt{newt.step.sat}.
+<<example-i-dor-check>>=
+all(ifelse(newt.step.sat < 0, resp == 0,
+    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
+@
+
+We will refine this check in examples below.
+
+\subsection{Limiting Conditional Model}
+
+For this example,
+we have found a DOR and hence need to take the limit in this direction.
+Since we are not using a computer algebra system, like Mathematica
+or Maple, we cannot actually take the limit.  Let us just take a
+step that is 100 times the Newton step.
+
+<<example-i-beta-too>>=
+beta.too <- coefficients(gout) + 100 * newt.step
+@
+
+\pagebreak[3]
+And redo the Fisher information calculation.
+<<example-i-fish-lcm>>=
+mout <- mlogl(beta.too)
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Now there is no question about the eigenvalues being both zero
+modulo inexactness of computer arithmetic.
+
+\subsection{Conclusion}
+
+The limiting conditional model (LCM) is completely degenerate.
+It has no parameters to estimate.  We are done with this example.
+
+\subsection{Clean Up}
+
+Clean R global environment, except keep function \texttt{invlogit}.
+<<example-i-clean>>=
+rm(list = setdiff(ls(), "invlogit"))
+@
+
+\section{Example II}
+
+\subsection{Fit Using R Function \texttt{glm}}
+
+This is the quasi-complete separation example of Agresti
+(see help for this dataset for source).
+<<example-ii-glm>>=
+data(quasi)
+gout <- glm(y ~ x, family = "binomial", data = quasi, x = TRUE)
+summary(gout)
+@
+% compares OK with 8931 handout infinity.pdf
+
+\subsection{Fisher Information Matrix}
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-ii-glm-fish>>=
+# extract model matrix, response vector, and offset vector
+modmat <- gout$x
+mf <- model.frame(gout)
+resp <- model.response(mf)
+offs <- model.offset(mf)
+
+# calculate minus log likelihood and two derivatives
+mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
+mout <- mlogl(coefficients(gout))
+@
+
+Check hessian is correct.
+<<example-ii-check-fish>>=
+theta.glm <- predict(gout)
+p.glm <- invlogit(theta.glm)
+q.glm <- invlogit(- theta.glm)
+fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
+all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+@
+
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-ii-fish-eigen>>=
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Now comparing to default tolerance for R function \texttt{all.equal}
+<<example-ii-how-small>>=
+sqrt(.Machine$double.eps)
+@
+\noindent
+does give the correct number of eigenvalues that are zero
+modulo inexactness of computer arithmetic (we know this toy problem
+was constructed to have one null eigenvalue of Fisher information).
+
+\subsection{Newton Step}
+
+Find Newton step.
+<<example-ii-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+newt.step
+@
+
+\subsection{Direction of Recession}
+
+Could this possibly be a direction of recession (DOR)?
+We suspect that because its components are not exactly round numbers
+that it is not exactly.
+
+Map to saturated model canonical parameter space.
+<<example-ii-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+newt.step.sat
+@
+
+This is not exactly a DOR.
+<<example-ii-dor-check>>=
+all(ifelse(newt.step.sat < 0, resp == 0,
+    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
+@
+
+But it is approximately.
+<<example-ii-newt-sat-zap>>=
+newt.step.sat.zap <- zapsmall(newt.step.sat)
+newt.step.sat.zap
+all(ifelse(newt.step.sat.zap < 0, resp == 0,
+    ifelse(newt.step.sat.zap > 0, resp == 1, TRUE)))
+@
+
+\subsection{Limiting Conditional Model}
+
+For this example, since the Newton step is not \emph{exactly} a DOR
+but is \emph{approximately} a DOR.  Hence we cannot take the limit
+in this direction, but probably can go uphill on the log likelihood
+a long way in this direction.
+
+<<example-ii-possible-dor>>=
+beta.try <- outer(2^(0:7), newt.step)
+beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
+beta.try
+
+# directional derivative along Newton path
+apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+@
+
+Since the directional derivative stays negative along the Newton path
+(as far as we went), we know we can take a step $2^7 = 128$ times the
+Newton step and still go downhill on minus the log likelihood
+(uphill on the log likelihood itself).
+
+<<example-ii-beta-too>>=
+beta.too <- beta.try[nrow(beta.try), ]
+@
+
+And redo the Fisher information calculation.
+<<example-ii-fish-lcm>>=
+mout <- mlogl(beta.too)
+eout <- eigen(mout$hessian, symmetric = TRUE)
+eout$values
+@
+
+Now it is more clear that there is one zero eigenvalue
+modulo inexactness of computer arithmetic.
+
+We now determine the linearity vector for the LCM following
+\citet[Section~6.2.1]{eck-geyer}.
+<<example-ii-nulls>>=
+is.zero <- eout$values < sqrt(.Machine$double.eps)
+is.zero
+
+nulls <- eout$vectors[ , is.zero, drop = FALSE]
+nulls
+
+nulls.sat <- modmat %*% nulls
+nulls.sat
+nulls.sat == 0
+@
+
+Here we have actually calculated the linearity exactly,
+but, in general, we would have to worry about inexactness of computer
+arithmetic.  We also deal here only with the special case that there
+is only one null eigenvector.  We will generalize this in other examples.
+
+<<example-ii-linearity>>=
+linearity <- as.vector(nulls.sat == 0)
+linearity
+@
+
+Fit the LCM.
+<<example-ii-glm-lcm>>=
+gout.lcm <- glm(y ~ x, family = "binomial", data = quasi,
+    subset = linearity)
+summary(gout.lcm)
+@
+% compares OK with 8931 handout infinity.pdf
+
+We can tell by looking at inverse Fisher information for this model
+that it does not have solution at infinity.  So this is the correct
+LCM.  We are done with this example.
+<<example-ii-glm-vcov>>=
+vcov(gout.lcm)
+@
+
+\subsection{Clean Up}
+
+Clean R global environment, except keep function \texttt{invlogit}.
+<<example-ii-clean>>=
+rm(list = setdiff(ls(), "invlogit"))
+@
+
+\REVISED
+
+
+\section{Example III}
+
+This is the complete separation example of Geyer
+(see help for this dataset for source).
+<<example-iii-glm>>=
+data(quadratic)
+gout <- glm(y ~ x + I(x^2), family = "binomial", data = quadratic, x = TRUE)
+summary(gout)
+@
+% technical report 672, file phaseTR.pdf
+% does not have this output
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-iii-glm-fish>>=
+# extract model matrix, response vector, and offset vector
+modmat <- gout$x
+mf <- model.frame(gout)
+resp <- model.response(mf)
+offs <- model.offset(mf)
+
+mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
+mout <- mlogl(coefficients(gout))
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Check hessian is correct.
+<<example-iii-check-fish>>=
+theta.glm <- predict(gout)
+p.glm <- invlogit(theta.glm)
+q.glm <- invlogit(- theta.glm)
+fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
+all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+@
+
+Find Newton step.
+<<example-iii-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+newt.step
+@
+
+Could this possibly be a direction of recession (DOR)?
+<<example-iii-possible-dor>>=
+beta.try <- outer(0:5, newt.step)
+beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
+beta.try
+
+apply(beta.try, 1, function(beta) mlogl(beta)$value)
+@
+
+Looks like a direction of recession.  Are eigenvalues better?
+<<example-iii-polish>>=
+beta.polish <- beta.try[6, ]
+fish.polish <- mlogl(beta.polish)$hessian
+eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Directional derivative along Newton path?
+<<example-iii-directional-derivative>>=
+apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+@
+
+Looks like we need to go farther along direction of recession.
+Could this possibly be a direction of recession (DOR)?
+<<example-iii-possible-dor-farther>>=
+beta.try <- outer(0:15, newt.step)
+beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
+
+apply(beta.try, 1, function(beta) mlogl(beta)$value)
+apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+@
+
+Are eigenvalues better still?
+<<example-iii-polish-too>>=
+beta.polish <- beta.try[16, ]
+fish.polish <- mlogl(beta.polish)$hessian
+eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+@
+
+\section{Example IV}
+
+This is the categorical data example of Geyer
+(see help for this dataset for source).
+<<example-iv-glm>>=
+data(catrec)
+gout <- glm(y ~ 0 + (.)^3, family = "poisson", data = catrec, x = TRUE)
+summary(gout)
+@
+% technical report 672, file phaseTR.pdf
+% does not have this output
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-iv-glm-fish>>=
+# extract model matrix, response vector, and offset vector
+modmat <- gout$x
+mf <- model.frame(gout)
+resp <- model.response(mf)
+offs <- model.offset(mf)
+
+mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "poisson")
+mout <- mlogl(coefficients(gout))
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Check hessian is correct.
+<<example-iv-check-fish>>=
+theta.glm <- predict(gout)
+fish.glm <- t(modmat) %*% diag(exp(theta.glm)) %*% modmat
+all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+@
+
+Find Newton step.
+<<example-iv-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+newt.step
+@
+
+Could this possibly be a direction of recession (DOR)?
+<<example-iv-possible-dor>>=
+beta.try <- outer(0:5, newt.step)
+beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
+beta.try
+
+apply(beta.try, 1, function(beta) mlogl(beta)$value)
+@
+
+Looks like a direction of recession.  Are eigenvalues better?
+<<example-iv-polish>>=
+beta.polish <- beta.try[6, ]
+fish.polish <- mlogl(beta.polish)$hessian
+eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Directional derivative along Newton path?
+<<example-iv-directional-derivative>>=
+apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+@
+
+Looks like we need to go farther along direction of recession.
+Could this possibly be a direction of recession (DOR)?
+<<example-iv-possible-dor-farther>>=
+beta.try <- outer(0:15, newt.step)
+beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
+
+apply(beta.try, 1, function(beta) mlogl(beta)$value)
+apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+@
+
+Are eigenvalues better still?
+<<example-iv-polish-too>>=
+beta.polish <- beta.try[16, ]
+fish.polish <- mlogl(beta.polish)$hessian
+eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+@
+
+\begin{thebibliography}{}
+
+\bibitem[Eck and Geyer(submitted)]{eck-geyer}
+Eck, D.~J. and Geyer, C.~J. (submitted).
+\newblock Computationally efficient likelihood inference
+    in exponential families when the maximum likelihood estimator
+    does not exist.
+\newblock \url{https://arxiv.org/abs/1803.11240}.
+
+\end{thebibliography}
+
+
+\end{document}
+
+\end{document}
+
+\end{document}
+
+\end{document}
+
+
+\end{document}
+
+\end{document}
+
+\end{document}
+
+\end{document}
+
