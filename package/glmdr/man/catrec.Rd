@@ -12,8 +12,8 @@
   Variables are \code{y} the vector of counts and \code{v1} \ldots \code{v7}
   which are indicator variables for each dimension.
 
-  The formula \code{y ~ 0 + .} describes the model with only main effects.
-  The formula \code{y ~ 0 + (.)^2} describes the model with all two-way
+  The formula \code{y ~ .} describes the model with only main effects.
+  The formula \code{y ~ (.)^2} describes the model with all two-way
   interactions but no higher-order interactions.  And so forth.
 }
 \source{

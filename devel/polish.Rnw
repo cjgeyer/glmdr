@@ -451,11 +451,15 @@ This is the categorical data example of Geyer
 (see help for this dataset for source).
 <<example-iv-glm>>=
 data(catrec)
-gout <- glm(y ~ 0 + (.)^3, family = "poisson", data = catrec, x = TRUE)
+gout <- glm(y ~ (.)^3, family = "poisson", data = catrec, x = TRUE)
 summary(gout)
 @
 % technical report 672, file phaseTR.pdf
 % does not have this output
+
+Note that, unlike the preceding examples, R function \texttt{glm}
+gives no warning of solutions at infinity.  So this is a false negative
+for those warnings.
 
 \subsection{Fisher Information Matrix}
 
@@ -479,7 +483,13 @@ fish.glm <- t(modmat) %*% diag(exp(theta.glm)) %*% modmat
 all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 @
 
-\REVISED
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-iv-fish-eigen>>=
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+\subsection{Newton Step}
 
 Find Newton step.
 <<example-iv-newt>>=
@@ -487,43 +497,124 @@ newt.step <- solve(mout$hessian, - mout$gradient)
 newt.step
 @
 
-Could this possibly be a direction of recession (DOR)?
+\subsection{Direction of Recession}
+
+ould this possibly be a direction of recession (DOR)?
+We suspect that because its components are not exactly round numbers
+that it is not exactly.
+
+Map to saturated model canonical parameter space.
+<<example-iv-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+newt.step.sat
+@
+
+This is not exactly a DOR.
+<<example-iv-dor-check>>=
+all(ifelse(newt.step.sat < 0, resp == 0,
+    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
+@
+
+But it is approximately.
+<<example-iv-newt-sat-zap>>=
+newt.step.sat.zap <- zapsmall(newt.step.sat)
+newt.step.sat.zap
+all(ifelse(newt.step.sat.zap < 0, resp == 0,
+    ifelse(newt.step.sat.zap > 0, resp == 1, TRUE)))
+@
+
+\subsection{Limiting Conditional Model}
+
+For this example, since the Newton step is not \emph{exactly} a DOR
+but is \emph{approximately} a DOR.  Hence we cannot take the limit
+in this direction, but probably can go uphill on the log likelihood
+a long way in this direction.
+
 <<example-iv-possible-dor>>=
-beta.try <- outer(0:5, newt.step)
-beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
-beta.try
-
-apply(beta.try, 1, function(beta) mlogl(beta)$value)
-@
-
-Looks like a direction of recession.  Are eigenvalues better?
-<<example-iv-polish>>=
-beta.polish <- beta.try[6, ]
-fish.polish <- mlogl(beta.polish)$hessian
-eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
-@
-
-Directional derivative along Newton path?
-<<example-iv-directional-derivative>>=
-apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
-@
-
-Looks like we need to go farther along direction of recession.
-Could this possibly be a direction of recession (DOR)?
-<<example-iv-possible-dor-farther>>=
-beta.try <- outer(0:15, newt.step)
+beta.try <- outer(2^(0:7), newt.step)
 beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
 
-apply(beta.try, 1, function(beta) mlogl(beta)$value)
-apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+# directional derivative along Newton path
+path.grad <- apply(beta.try, 1,
+    function(beta) sum(mlogl(beta)$gradient * newt.step))
+path.grad
 @
 
-Are eigenvalues better still?
-<<example-iv-polish-too>>=
-beta.polish <- beta.try[16, ]
-fish.polish <- mlogl(beta.polish)$hessian
-eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+Here we see that we cannot take a huge step along the Newton path.
+The last point at which we are still going downhill on minus the log likelihood
+(uphill on the log likelihood itself) is a step
+<<example-iv-beta-too>>=
+kstep <- max(which(path.grad < 0))
+kstep
+beta.too <- beta.try[kstep, ]
 @
+
+This step is $2^\Sexpr{(0:7)[kstep]} = \Sexpr{2^(0:7)[kstep]}$ times
+the Newton step.
+
+And redo the Fisher information calculation.
+<<example-iv-fish-lcm>>=
+mout <- mlogl(beta.too)
+eout <- eigen(mout$hessian, symmetric = TRUE)
+eout$values
+@
+
+Now it is more clear that there is one zero eigenvalue
+modulo inexactness of computer arithmetic.
+We cannot really expect more accuracy than
+<<example-iv-fish-lcm-eigen-accuracy>>=
+max(eout$values) * .Machine$double.eps
+@
+
+We now determine the linearity vector for the LCM following
+\citet[Section~6.2.1]{eck-geyer}.
+<<example-iv-nulls>>=
+is.zero <- eout$values < sqrt(.Machine$double.eps)
+# is.zero
+
+nulls <- eout$vectors[ , is.zero, drop = FALSE]
+# nulls
+
+nulls.sat <- modmat %*% nulls
+# nulls.sat
+any(nulls.sat == 0)
+any(abs(nulls.sat) < sqrt(.Machine$double.eps))
+@
+
+Here we have \emph{not} calculated the linearity exactly,
+so we have to worry about inexactness of computer
+arithmetic.
+
+<<example-iv-linearity>>=
+linearity <- as.vector(abs(nulls.sat) < sqrt(.Machine$double.eps))
+catrec[! linearity, ]
+@
+
+This agrees with (part of) Table 2 in \citet{geyer-gdor}
+and with Section~10.4 of the supplementary material for \citet{eck-geyer}.
+
+Fit the LCM.
+<<example-iv-glm-lcm>>=
+gout.lcm <- glm(y ~ (.)^3, family = "poisson", data = catrec,
+    subset = linearity)
+summary(gout.lcm)
+@
+
+This agrees
+with Section~10.5 of the supplementary material for \citet{eck-geyer}.
+
+We can tell by looking at inverse Fisher information for this model
+that it does not have solution at infinity.  So this is the correct
+LCM.  We are done with this example.
+<<example-iv-glm-vcov>>=
+v <- vcov(gout.lcm)
+v <- v[! is.na(coefficients(gout.lcm)), ]
+v <- v[ , ! is.na(coefficients(gout.lcm))]
+range(eigen(v, symmetric = TRUE, only.values = TRUE)$values)
+@
+
+
+
 
 \begin{thebibliography}{}
 
@@ -534,23 +625,14 @@ Eck, D.~J. and Geyer, C.~J. (submitted).
     does not exist.
 \newblock \url{https://arxiv.org/abs/1803.11240}.
 
+\bibitem[Geyer(2009)]{geyer-gdor}
+Geyer, Charles J. (2009).
+\newblock Likelihood inference in exponential families and directions
+    of recession.
+\newblock \emph{Electronic Journal of Statistics}, \textbf{3}, 259--289.
+
 \end{thebibliography}
 
-
-\end{document}
-
-\end{document}
-
-\end{document}
-
-\end{document}
-
-
-\end{document}
-
-\end{document}
-
-\end{document}
 
 \end{document}
 
