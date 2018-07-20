@@ -47,7 +47,7 @@ library(glmdr, lib.loc = "../package/glmdr.Rcheck")
     \Sexpr{packageVersion("glmdr")}.
 \end{itemize}
 
-\section{Example I}
+\section{Example I} \label{sec:ex-i}
 
 \subsection{Fit Using R Function \texttt{glm}}
 
@@ -333,20 +333,22 @@ Clean R global environment, except keep function \texttt{invlogit}.
 rm(list = setdiff(ls(), "invlogit"))
 @
 
-\REVISED
-
-
 \section{Example III}
+
+\subsection{Fit Using R Function \texttt{glm}}
 
 This is the complete separation example of Geyer
 (see help for this dataset for source).
 <<example-iii-glm>>=
 data(quadratic)
-gout <- glm(y ~ x + I(x^2), family = "binomial", data = quadratic, x = TRUE)
+gout <- glm(y ~ x + I(x^2), family = "binomial",
+    data = quadratic, x = TRUE)
 summary(gout)
 @
 % technical report 672, file phaseTR.pdf
 % does not have this output
+
+\subsection{Fisher Information Matrix}
 
 First we look at the Fisher information matrix for this parameter value.
 <<example-iii-glm-fish>>=
@@ -356,9 +358,9 @@ mf <- model.frame(gout)
 resp <- model.response(mf)
 offs <- model.offset(mf)
 
+# calculate minus log likelihood and two derivatives
 mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
 mout <- mlogl(coefficients(gout))
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
 @
 
 Check hessian is correct.
@@ -370,51 +372,80 @@ fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
 all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 @
 
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-iii-fish-eigen>>=
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+Now comparing to default tolerance for R function \texttt{all.equal}
+<<example-iii-how-small>>=
+sqrt(.Machine$double.eps)
+@
+\noindent
+does \emph{not} give the correct number of eigenvalues that are zero
+modulo inexactness of computer arithmetic (we know this toy problem
+was constructed to have completely degenerate LCM).
+
+\subsection{Newton Step}
+
 Find Newton step.
 <<example-iii-newt>>=
 newt.step <- solve(mout$hessian, - mout$gradient)
 newt.step
 @
 
+\subsection{Direction of Recession}
+
 Could this possibly be a direction of recession (DOR)?
-<<example-iii-possible-dor>>=
-beta.try <- outer(0:5, newt.step)
-beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
-beta.try
 
-apply(beta.try, 1, function(beta) mlogl(beta)$value)
+Map to saturated model canonical parameter space.
+<<example-iii-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+data.frame(quadratic, newt.step.sat)
 @
 
-Looks like a direction of recession.  Are eigenvalues better?
-<<example-iii-polish>>=
-beta.polish <- beta.try[6, ]
-fish.polish <- mlogl(beta.polish)$hessian
-eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+This is obviously a DOR for this toy problem.
+As in Section~\ref{sec:ex-i} above, we do a non-general check,
+because that is good enough when the LCM is completely degenerate.
+<<example-iii-dor-check>>=
+all(ifelse(newt.step.sat < 0, resp == 0,
+    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
 @
 
-Directional derivative along Newton path?
-<<example-iii-directional-derivative>>=
-apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+\subsection{Limiting Conditional Model}
+
+Also following Section~\ref{sec:ex-i} above,
+we take a step that is 100 times the Newton step.
+
+<<example-iii-beta-too>>=
+beta.too <- coefficients(gout) + 100 * newt.step
 @
 
-Looks like we need to go farther along direction of recession.
-Could this possibly be a direction of recession (DOR)?
-<<example-iii-possible-dor-farther>>=
-beta.try <- outer(0:15, newt.step)
-beta.try <- sweep(beta.try, 2, coefficients(gout), "+")
-
-apply(beta.try, 1, function(beta) mlogl(beta)$value)
-apply(beta.try, 1, function(beta) sum(mlogl(beta)$gradient * newt.step))
+And redo the Fisher information calculation.
+<<example-iii-fish-lcm>>=
+mout <- mlogl(beta.too)
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
 @
 
-Are eigenvalues better still?
-<<example-iii-polish-too>>=
-beta.polish <- beta.try[16, ]
-fish.polish <- mlogl(beta.polish)$hessian
-eigen(fish.polish, symmetric = TRUE, only.values = TRUE)$values
+Now there is no question about the eigenvalues being all zero
+modulo inexactness of computer arithmetic.
+
+\subsection{Conclusion}
+
+The limiting conditional model (LCM) is completely degenerate.
+It has no parameters to estimate.  We are done with this example.
+
+\subsection{Clean Up}
+
+Clean R global environment, except keep function \texttt{invlogit}.
+<<example-iii-clean>>=
+rm(list = setdiff(ls(), "invlogit"))
 @
 
 \section{Example IV}
+
+\subsection{Fit Using R Function \texttt{glm}}
 
 This is the categorical data example of Geyer
 (see help for this dataset for source).
@@ -426,6 +457,8 @@ summary(gout)
 % technical report 672, file phaseTR.pdf
 % does not have this output
 
+\subsection{Fisher Information Matrix}
+
 First we look at the Fisher information matrix for this parameter value.
 <<example-iv-glm-fish>>=
 # extract model matrix, response vector, and offset vector
@@ -434,9 +467,9 @@ mf <- model.frame(gout)
 resp <- model.response(mf)
 offs <- model.offset(mf)
 
+# calculate minus log likelihood and two derivatives
 mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "poisson")
 mout <- mlogl(coefficients(gout))
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
 @
 
 Check hessian is correct.
@@ -445,6 +478,8 @@ theta.glm <- predict(gout)
 fish.glm <- t(modmat) %*% diag(exp(theta.glm)) %*% modmat
 all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 @
+
+\REVISED
 
 Find Newton step.
 <<example-iv-newt>>=
