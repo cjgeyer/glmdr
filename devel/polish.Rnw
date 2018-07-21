@@ -177,6 +177,11 @@ eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
 Now there is no question about the eigenvalues being both zero
 modulo inexactness of computer arithmetic.
 
+<<example-i-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <-
+    max(eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values)
+@
+
 \subsection{Conclusion}
 
 The limiting conditional model (LCM) is completely degenerate.
@@ -295,6 +300,11 @@ eout$values
 
 Now it is more clear that there is one zero eigenvalue
 modulo inexactness of computer arithmetic.
+
+<<example-ii-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <- c(.polish.max.eigenzero,
+    max(eout$values[eout$values < all.equal.default.tolerance]))
+@
 
 We now determine the linearity vector for the LCM following
 \citet[Section~6.2.1]{eck-geyer}.
@@ -420,6 +430,11 @@ we take a step that is 100 times the Newton step.
 And redo the Fisher information calculation.
 <<example-iii-fish-lcm>>=
 <<example-i-fish-lcm>>
+@
+
+<<example-iii-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <- c(.polish.max.eigenzero,
+    max(eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values))
 @
 
 Now there is no question about the eigenvalues being all zero
@@ -555,6 +570,15 @@ modulo inexactness of computer arithmetic.
 We cannot really expect more accuracy than
 <<example-iv-fish-lcm-eigen-accuracy>>=
 max(eout$values) * .Machine$double.eps
+@
+\noindent
+and it is also clear that the negative eigenvalue is entirely due
+to inexactness of computer arithmetic because Fisher information matrices
+are positive semi-definite and cannot have negative eigenvalues.
+
+<<example-iv-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <- c(.polish.max.eigenzero,
+    max(eout$values[eout$values < all.equal.default.tolerance]))
 @
 
 We now determine the linearity vector for the LCM following
@@ -731,10 +755,15 @@ And redo the Fisher information calculation.
 <<example-ii-fish-lcm>>
 @
 
+<<example-v-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <- c(.polish.max.eigenzero,
+    max(eout$values[eout$values < all.equal.default.tolerance]))
+@
+
 We now determine the linearity vector for the LCM following
 \citet[Section~6.2.1]{eck-geyer}.
 <<example-v-nulls>>=
-is.zero <- eout$values < sqrt(.Machine$double.eps)
+is.zero <- eout$values < all.equal.default.tolerance
 # is.zero
 
 nulls <- eout$vectors[ , is.zero, drop = FALSE]
@@ -743,7 +772,7 @@ nulls <- eout$vectors[ , is.zero, drop = FALSE]
 nulls.sat <- modmat %*% nulls
 dim(nulls.sat)
 linearity <- apply(abs(nulls.sat), 1,
-    function(x) max(x) < sqrt(.Machine$double.eps))
+    function(x) max(x) < all.equal.default.tolerance)
 data.frame(plus = team.plus, minus = team.minus,
     linearity)
 @
@@ -897,6 +926,11 @@ eout <- eigen(mout$hessian, symmetric = TRUE)
 sum(eout$values < all.equal.default.tolerance)
 @
 
+<<example-vi-eigenzero,include=FALSE,echo=FALSE>>=
+.polish.max.eigenzero <- c(.polish.max.eigenzero,
+    max(eout$values[eout$values < all.equal.default.tolerance]))
+@
+
 There are too many eigenvalues to show, but at least we have the
 right dimension of the null space of the Fisher information matrix
 for the LCM, according to Section~11.4 of the supplementary material
@@ -905,7 +939,7 @@ for \citet{eck-geyer}.
 We now determine the linearity vector for the LCM following
 \citet[Section~6.2.1]{eck-geyer}.
 <<example-vi-nulls>>=
-is.zero <- eout$values < sqrt(.Machine$double.eps)
+is.zero <- eout$values < all.equal.default.tolerance
 # is.zero
 
 nulls <- eout$vectors[ , is.zero, drop = FALSE]
@@ -934,15 +968,50 @@ LCM.  We are done with this example.
 <<example-iv-glm-vcov>>
 @
 
+\section{Discussion}
 
+So the trick of ``polishing'' the result of R function \texttt{glm}
+is to do one (or perhaps more, but we only needed one for all of our
+examples) Newton steps safeguarded by a line search.
+\begin{itemize}
+\item If the Newton direction is actually a DOR, then we can follow
+    the line search all the way to infinity.
+\item If the Newton direction is not exactly a DOR, but DOR exist,
+    (so the MLE does not exist in the conventional sense),
+    then we can follow the line search a long way but not all the way
+    to infinity (our line search step will be many times what the
+    Newton step would have been.
+\item If no DOR exist (so the MLE does exist in the conventional sense
+    and the result of R function \texttt{glm} is close to correct),
+    then nothing bad happens. We just do very close to the Newton
+    step and slightly improve the accuracy of the MLE.
+\end{itemize}
 
+After this operation, it is much easier to discover null eigenvalues
+of the Fisher information matrix.  In all the examples the largest
+calculated eigenvalue that we decided was truly zero was
+\Sexpr{max(.polish.max.eigenzero)} which occured
+in Example~\Sexpr{library(utils); as.roman(which(.polish.max.eigenzero == max(.polish.max.eigenzero)))} (not shown).
 
+This is quite a bit below the cutoff we used
+<<discuss-cutoff>>=
+all.equal.default.tolerance
+@
 
+Presumably we could use
+<<discuss-cutoff-too>>=
+(.Machine$double.eps)^(3 / 4)
+@
+\noindent
+or something of the sort.
 
-
-
-
-
+We can special case the case of no eigenvalues zero (the MLE exists in
+the conventional sense) and all eigenvalues zero
+(the MLE in the Barndorff-Nielsen completion is completely degenerate).
+In either case the LCM is trivial and need not be fitted.
+In the first case, R function \texttt{glm} has already done the work.
+In the second case, there is no work to do, because a completely degenerate
+model has no identifiable parameters.
 
 \begin{thebibliography}{}
 
