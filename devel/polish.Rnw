@@ -207,35 +207,23 @@ summary(gout)
 
 First we look at the Fisher information matrix for this parameter value.
 <<example-ii-glm-fish>>=
-# extract model matrix, response vector, and offset vector
-modmat <- gout$x
-mf <- model.frame(gout)
-resp <- model.response(mf)
-offs <- model.offset(mf)
-
-# calculate minus log likelihood and two derivatives
-mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
-mout <- mlogl(coefficients(gout))
+<<example-i-glm-fish>>
 @
 
 Check hessian is correct.
 <<example-ii-check-fish>>=
-theta.glm <- predict(gout)
-p.glm <- invlogit(theta.glm)
-q.glm <- invlogit(- theta.glm)
-fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
-all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+<<example-i-check-fish>>
 @
 
 Look at eigenvalues of Fisher information matrix the MLE found by
 R function \texttt{glm}.
 <<example-ii-fish-eigen>>=
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+<<example-i-fish-eigen>>
 @
 
 Now comparing to default tolerance for R function \texttt{all.equal}
-<<example-ii-how-small>>=
-sqrt(.Machine$double.eps)
+<<example-ii-eigenvalues-zero>>=
+<<example-i-eigenvalues-zero>>
 @
 \noindent
 does give the correct number of eigenvalues that are zero
@@ -246,8 +234,7 @@ was constructed to have one null eigenvalue of Fisher information).
 
 Find Newton step.
 <<example-ii-newt>>=
-newt.step <- solve(mout$hessian, - mout$gradient)
-newt.step
+<<example-i-newt>>
 @
 
 \subsection{Direction of Recession}
@@ -258,14 +245,12 @@ that it is not exactly.
 
 Map to saturated model canonical parameter space.
 <<example-ii-newt-sat>>=
-newt.step.sat <- as.vector(modmat %*% newt.step)
-newt.step.sat
+<<example-i-newt-sat>>
 @
 
 This is not exactly a DOR.
 <<example-ii-dor-check>>=
-all(ifelse(newt.step.sat < 0, resp == 0,
-    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
+<<example-i-dor-check>>
 @
 
 But it is approximately.
@@ -314,7 +299,7 @@ modulo inexactness of computer arithmetic.
 We now determine the linearity vector for the LCM following
 \citet[Section~6.2.1]{eck-geyer}.
 <<example-ii-nulls>>=
-is.zero <- eout$values < sqrt(.Machine$double.eps)
+is.zero <- eout$values < all.equal.default.tolerance
 is.zero
 
 nulls <- eout$vectors[ , is.zero, drop = FALSE]
@@ -354,7 +339,7 @@ vcov(gout.lcm)
 
 Clean R global environment, except keep function \texttt{invlogit}.
 <<example-ii-clean>>=
-rm(list = setdiff(ls(), "invlogit"))
+<<example-i-clean>>
 @
 
 \section{Example III}
