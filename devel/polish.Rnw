@@ -477,18 +477,18 @@ fish.glm <- t(modmat) %*% diag(exp(theta.glm)) %*% modmat
 all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 @
 
+\pagebreak[3]
 Look at eigenvalues of Fisher information matrix the MLE found by
 R function \texttt{glm}.
 <<example-iv-fish-eigen>>=
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+<<example-i-fish-eigen>>
 @
 
 \subsection{Newton Step}
 
 Find Newton step.
 <<example-iv-newt>>=
-newt.step <- solve(mout$hessian, - mout$gradient)
-newt.step
+<<example-i-newt>>
 @
 
 \subsection{Direction of Recession}
@@ -499,14 +499,13 @@ that it is not exactly.
 
 Map to saturated model canonical parameter space.
 <<example-iv-newt-sat>>=
-newt.step.sat <- as.vector(modmat %*% newt.step)
-newt.step.sat
+<<example-i-newt-sat>>
 @
 
 This is not exactly a DOR.
 <<example-iv-dor-check>>=
 all(ifelse(newt.step.sat < 0, resp == 0,
-    ifelse(newt.step.sat > 0, resp == 1, TRUE)))
+    ifelse(newt.step.sat > 0, resp == Inf, TRUE)))
 @
 
 But it is approximately.
@@ -514,7 +513,7 @@ But it is approximately.
 newt.step.sat.zap <- zapsmall(newt.step.sat)
 newt.step.sat.zap
 all(ifelse(newt.step.sat.zap < 0, resp == 0,
-    ifelse(newt.step.sat.zap > 0, resp == 1, TRUE)))
+    ifelse(newt.step.sat.zap > 0, resp == Inf, TRUE)))
 @
 
 \subsection{Limiting Conditional Model}
@@ -548,9 +547,7 @@ the Newton step.
 
 And redo the Fisher information calculation.
 <<example-iv-fish-lcm>>=
-mout <- mlogl(beta.too)
-eout <- eigen(mout$hessian, symmetric = TRUE)
-eout$values
+<<example-ii-fish-lcm>>
 @
 
 Now it is more clear that there is one zero eigenvalue
@@ -611,7 +608,7 @@ range(eigen(v, symmetric = TRUE, only.values = TRUE)$values)
 
 Clean R global environment, except keep function \texttt{invlogit}.
 <<example-iv-clean>>=
-rm(list = setdiff(ls(), "invlogit"))
+<<example-i-clean>>
 @
 
 \section{Example V}
