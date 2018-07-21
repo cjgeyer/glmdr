@@ -45,6 +45,8 @@ library(glmdr, lib.loc = "../package/glmdr.Rcheck")
 \item The version of R used to make this document is \Sexpr{getRversion()}.
 \item The version of the \texttt{glmdr} package used to make this document is
     \Sexpr{packageVersion("glmdr")}.
+\item The version of the \texttt{knitr} package used to make this document is
+    \Sexpr{packageVersion("knitr")}.
 \end{itemize}
 
 \section{Example I} \label{sec:ex-i}
@@ -60,6 +62,18 @@ gout <- glm(y ~ x, family = "binomial", data = complete,
 summary(gout)
 @
 % compares OK with 8931 handout infinity.pdf
+
+\subsection{A Useful Function}
+
+Define the inverse logit function with careful computation that
+avoids overflow, underflow, catastrophic cancellation, and other
+issues with inexact computer arithmetic.
+<<invlogit>>=
+invlogit <- function(theta)
+    ifelse(theta < 0,
+        exp(theta) / (1 + exp(theta)),
+        1 / (1 + exp(- theta)))
+@
 
 \subsection{Fisher Information Matrix}
 
@@ -78,30 +92,39 @@ mout <- mlogl(coefficients(gout))
 
 Check that hessian is correct.
 <<example-i-check-fish>>=
-invlogit <- function(theta) ifelse(theta < 0,
-    exp(theta) / (1 + exp(theta)),
-    1 / (1 + exp(- theta)))
 theta.glm <- predict(gout)
 p.glm <- invlogit(theta.glm)
 q.glm <- invlogit(- theta.glm)
+# only good for Bernoulli (zero-or-one-valued) response
 fish.glm <- t(modmat) %*% diag(p.glm * q.glm) %*% modmat
 all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 @
 
-Look at eigenvalues of Fisher information matrix the MLE found by
+Look at eigenvalues of Fisher information matrix at the MLE found by
 R function \texttt{glm}.
 <<example-i-fish-eigen>>=
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+eout <- eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)
+eout$values
 @
 
 Compare to default tolerance for R function \texttt{all.equal}.
 <<example-i-how-small>>=
-args(getS3method("all.equal", "numeric"))
-sqrt(.Machine$double.eps)
+foo <- args(getS3method("all.equal", "numeric"))
+foo
+all.equal.default.tolerance <- eval(as.list(foo)$tolerance)
+all.equal.default.tolerance
 @
 
-According to R function \texttt{all.equal} we do not have both
+According to R function \texttt{all.equal} with its default
+tolerance we do not have both
 eigenvalues equal to zero.
+<<example-i-eigenvalues-zero>>=
+eout$values < all.equal.default.tolerance
+@
+Of course, we could change the tolerance, but to what?
+We need something that works for all problems not just this one.
+You need to already know the answer to choose the tolerance to
+get the correct answer.  So that's no help.
 
 \subsection{Newton Step}
 
@@ -163,7 +186,8 @@ It has no parameters to estimate.  We are done with this example.
 
 Clean R global environment, except keep function \texttt{invlogit}.
 <<example-i-clean>>=
-rm(list = setdiff(ls(), "invlogit"))
+rm(list = setdiff(ls(),
+    c("invlogit", "all.equal.default.tolerance")))
 @
 
 \section{Example II}
@@ -499,7 +523,7 @@ newt.step
 
 \subsection{Direction of Recession}
 
-ould this possibly be a direction of recession (DOR)?
+Could this possibly be a direction of recession (DOR)?
 We suspect that because its components are not exactly round numbers
 that it is not exactly.
 
@@ -612,6 +636,207 @@ v <- v[! is.na(coefficients(gout.lcm)), ]
 v <- v[ , ! is.na(coefficients(gout.lcm))]
 range(eigen(v, symmetric = TRUE, only.values = TRUE)$values)
 @
+
+\subsection{Clean Up}
+
+Clean R global environment, except keep function \texttt{invlogit}.
+<<example-iv-clean>>=
+rm(list = setdiff(ls(), "invlogit"))
+@
+
+\section{Example V}
+
+\subsection{Fit Using R Function \texttt{glm}}
+
+This is the sports separation example of Geyer
+(see help for this dataset for source).
+<<example-v-glm>>=
+data(sports)
+gout <- glm(cbind(wins, losses) ~ 0 + ., family = "binomial",
+    data = sports, x = TRUE)
+summary(gout)
+@
+
+\subsection{Fisher Information Matrix}
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-v-glm-fish>>=
+# extract model matrix, response vector, and offset vector
+modmat <- gout$x
+mf <- model.frame(gout)
+resp <- model.response(mf)
+n <- rowSums(resp)
+y <- resp[ , "wins"]
+offs <- model.offset(mf)
+
+# reduce dimension of coefficient vector and model matrix
+inies <- ! is.na(coefficients(gout))
+modmat <- modmat[ , inies, drop = FALSE]
+beta <- coefficients(gout)[inies]
+
+# calculate minus log likelihood and two derivatives
+mlogl <- glmdr:::make.mlogl(modmat, resp, offs, "binomial")
+mout <- mlogl(beta)
+@
+
+Check hessian is correct.
+<<example-v-check-fish>>=
+theta.glm <- predict(gout)
+p.glm <- invlogit(theta.glm)
+q.glm <- invlogit(- theta.glm)
+fish.glm <- t(modmat) %*% diag(n * p.glm * q.glm) %*% modmat
+all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
+@
+
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-v-fish-eigen>>=
+eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+@
+
+\subsection{Newton Step}
+
+Find Newton step.
+<<example-v-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+newt.step
+@
+
+This looks very close to the generalized direction of recession (GDOR)
+given by \citet[Table~4]{geyer-gdor} if we allow for the fact that
+the last coefficient (for the hogs) is being constrained to be zero.
+
+\subsection{Direction of Recession}
+
+Could this possibly be a direction of recession (DOR)?
+
+Map to saturated model canonical parameter space.
+<<example-v-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+team.names <- colnames(gout$x)
+team.plus <- apply(gout$x, 1, function(x) team.names[x == 1])
+team.minus <- apply(gout$x, 1, function(x) team.names[x == - 1])
+data.frame(plus = team.plus, minus = team.minus,
+    step = zapsmall(newt.step.sat))
+newt.step.sat
+@
+
+This is not exactly a DOR.
+<<example-v-dor-check>>=
+all(ifelse(newt.step.sat < 0, y == 0,
+    ifelse(newt.step.sat > 0, y == n, TRUE)))
+@
+
+But it is approximately.
+<<example-v-newt-sat-zap>>=
+newt.step.sat.zap <- zapsmall(newt.step.sat)
+newt.step.sat.zap
+all(ifelse(newt.step.sat.zap < 0, y == 0,
+    ifelse(newt.step.sat.zap > 0, y == n, TRUE)))
+@
+
+\subsection{Limiting Conditional Model}
+
+For this example, since the Newton step is not \emph{exactly} a DOR
+but is \emph{approximately} a DOR.  Hence we cannot take the limit
+in this direction, but probably can go uphill on the log likelihood
+a long way in this direction.
+
+<<example-v-possible-dor>>=
+beta.try <- outer(2^(0:7), newt.step)
+beta.try <- sweep(beta.try, 2, beta, "+")
+
+# directional derivative along Newton path
+path.grad <- apply(beta.try, 1,
+    function(beta) sum(mlogl(beta)$gradient * newt.step))
+path.grad
+@
+
+Here we see that we cannot take a huge step along the Newton path.
+The last point at which we are still going downhill on minus the log likelihood
+(uphill on the log likelihood itself) is a step
+<<example-v-beta-too>>=
+kstep <- max(which(path.grad < 0))
+kstep
+beta.too <- beta.try[kstep, ]
+@
+
+This step is $2^\Sexpr{(0:7)[kstep]} = \Sexpr{2^(0:7)[kstep]}$ times
+the Newton step.
+
+And redo the Fisher information calculation.
+<<example-v-fish-lcm>>=
+mout <- mlogl(beta.too)
+eout <- eigen(mout$hessian, symmetric = TRUE)
+eout$values
+@
+
+We now determine the linearity vector for the LCM following
+\citet[Section~6.2.1]{eck-geyer}.
+<<example-v-nulls>>=
+is.zero <- eout$values < sqrt(.Machine$double.eps)
+# is.zero
+
+nulls <- eout$vectors[ , is.zero, drop = FALSE]
+# nulls
+
+nulls.sat <- modmat %*% nulls
+dim(nulls.sat)
+linearity <- apply(abs(nulls.sat), 1,
+    function(x) max(x) < sqrt(.Machine$double.eps))
+data.frame(plus = team.plus, minus = team.minus,
+    linearity)
+@
+
+Here we have \emph{not} calculated the linearity exactly,
+so we have to worry about inexactness of computer
+arithmetic.
+But this is the correct linearity for this problem.
+
+Fit the LCM.
+<<example-v-glm-lcm>>=
+gout.lcm <- glm(cbind(wins, losses) ~ 0 + ., family = "binomial",
+    data = sports, subset = linearity)
+summary(gout.lcm)
+@
+
+This agrees with (part of) Table 4 in \citet{geyer-gdor}
+and with Section~8.4 of the supplementary material for \citet{eck-geyer}.
+
+We can tell by looking at inverse Fisher information for this model
+that it does not have solution at infinity.  So this is the correct
+LCM.  We are done with this example.
+<<example-v-glm-vcov>>=
+v <- vcov(gout.lcm)
+v <- v[! is.na(coefficients(gout.lcm)), ]
+v <- v[ , ! is.na(coefficients(gout.lcm))]
+range(eigen(v, symmetric = TRUE, only.values = TRUE)$values)
+@
+
+\subsection{Clean Up}
+
+Clean R global environment.
+<<example-v-clean>>=
+rm(list = ls())
+@
+
+\section{Example VI}
+
+\subsection{Fit Using R Function \texttt{glm}}
+
+This is the big categorical data example of Eck
+(see help for this dataset for source).
+<<example-vi-glm>>=
+data(bigcategorical)
+gout <- glm(y ~ (.)^4, family = "poisson", data = bigcategorical,
+    x = TRUE)
+# summary(gout) # too much printout
+@
+
+
+
+
+
 
 
 
