@@ -560,7 +560,7 @@ max(eout$values) * .Machine$double.eps
 We now determine the linearity vector for the LCM following
 \citet[Section~6.2.1]{eck-geyer}.
 <<example-iv-nulls>>=
-is.zero <- eout$values < sqrt(.Machine$double.eps)
+is.zero <- eout$values < all.equal.default.tolerance
 # is.zero
 
 nulls <- eout$vectors[ , is.zero, drop = FALSE]
@@ -569,7 +569,7 @@ nulls <- eout$vectors[ , is.zero, drop = FALSE]
 nulls.sat <- modmat %*% nulls
 # nulls.sat
 any(nulls.sat == 0)
-any(abs(nulls.sat) < sqrt(.Machine$double.eps))
+any(abs(nulls.sat) < all.equal.default.tolerance)
 @
 
 Here we have \emph{not} calculated the linearity exactly,
@@ -577,7 +577,7 @@ so we have to worry about inexactness of computer
 arithmetic.
 
 <<example-iv-linearity>>=
-linearity <- as.vector(abs(nulls.sat) < sqrt(.Machine$double.eps))
+linearity <- as.vector(abs(nulls.sat) < all.equal.default.tolerance)
 catrec[! linearity, ]
 @
 
