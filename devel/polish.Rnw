@@ -790,6 +790,152 @@ gout <- glm(y ~ (.)^4, family = "poisson", data = bigcategorical,
 # summary(gout) # too much printout
 @
 
+Note that, like Example~IV above, R function \texttt{glm}
+gives no warning of solutions at infinity.  So this is a false negative
+for those warnings.
+
+\subsection{Fisher Information Matrix}
+
+First we look at the Fisher information matrix for this parameter value.
+<<example-vi-glm-fish>>=
+<<example-iv-glm-fish>>
+@
+
+Check hessian is correct.
+<<example-vi-check-fish>>=
+<<example-iv-check-fish>>
+@
+
+Look at eigenvalues of Fisher information matrix the MLE found by
+R function \texttt{glm}.
+<<example-vi-fish-eigen-make>>=
+eout <- eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)
+@
+
+Figure~\ref{fig:eigen} is made by the following code
+<<example-vi-fish-eigen-plot,eval=FALSE>>=
+plot(eout$values, ylab = "eigenvalues", log = "y")
+abline(h = all.equal.default.tolerance)
+@
+\begin{figure}
+\begin{center}
+<<example-vi-fish-eigen,echo=FALSE>>=
+<<example-vi-fish-eigen-plot>>
+@
+\end{center}
+\caption{Eigenvalues of Fisher information matrix for MLE produced by
+R function \texttt{glm}.  Solid line is default tolerance of
+R function \texttt{all.equal}.}
+\label{fig:eigen}
+\end{figure}
+This figure shows that the default tolerance for R function \texttt{all.equal}
+doesn't do the right thing for this example.  As we said before, one could
+use a different tolerance, but what?  It order to choose the tolerance that
+gives the right answer for a problem, you already need to know the right answer!
+
+\subsection{Newton Step}
+
+Find Newton step.
+<<example-vi-newt>>=
+newt.step <- solve(mout$hessian, - mout$gradient)
+# newt.step # too big to show
+@
+
+\subsection{Direction of Recession}
+
+Could this possibly be a direction of recession (DOR)?
+
+Map to saturated model canonical parameter space.
+<<example-vi-newt-sat>>=
+newt.step.sat <- as.vector(modmat %*% newt.step)
+# newt.step.sat # too big to show
+@
+
+This is not exactly a DOR.
+<<example-vi-dor-check>>=
+all(ifelse(newt.step.sat < 0, resp == 0,
+    ifelse(newt.step.sat > 0, resp == Inf, TRUE)))
+@
+
+But it is approximately.
+<<example-vi-newt-sat-zap>>=
+newt.step.sat.zap <- zapsmall(newt.step.sat)
+# newt.step.sat.zap # too big to show
+all(ifelse(newt.step.sat.zap < 0, resp == 0,
+    ifelse(newt.step.sat.zap > 0, resp == Inf, TRUE)))
+@
+
+\subsection{Limiting Conditional Model}
+
+For this example, since the Newton step is not \emph{exactly} a DOR
+but is \emph{approximately} a DOR.  Hence we cannot take the limit
+in this direction, but probably can go uphill on the log likelihood
+a long way in this direction.
+
+<<example-vi-possible-dor>>=
+<<example-iv-possible-dor>>
+@
+
+Wow!  Theory says that the restriction of a strictly convex function to a line
+is another strictly convex function, which must have a strictly decreasing
+derivative.  But inexact computer arithmetic fails to preserve this theoretical
+property, even when done as carefully as possible (without using multiple
+precision arithmetic).
+
+To be conservative, let us take the last step before the derivative
+turns (temporarily) positive, which is probably just rounding error.
+<<example-vi-beta-too>>=
+kstep <- min(which(path.grad > 0)) - 1
+kstep
+beta.too <- beta.try[kstep, ]
+@
+
+And redo the Fisher information calculation.
+<<example-vi-fish-lcm>>=
+mout <- mlogl(beta.too)
+eout <- eigen(mout$hessian, symmetric = TRUE)
+sum(eout$values < all.equal.default.tolerance)
+@
+
+There are too many eigenvalues to show, but at least we have the
+right dimension of the null space of the Fisher information matrix
+for the LCM, according to Section~11.4 of the supplementary material
+for \citet{eck-geyer}.
+
+We now determine the linearity vector for the LCM following
+\citet[Section~6.2.1]{eck-geyer}.
+<<example-vi-nulls>>=
+is.zero <- eout$values < sqrt(.Machine$double.eps)
+# is.zero
+
+nulls <- eout$vectors[ , is.zero, drop = FALSE]
+# nulls
+
+nulls.sat <- modmat %*% nulls
+dim(nulls.sat)
+linearity <- apply(abs(nulls.sat), 1, max) < all.equal.default.tolerance
+sum(! linearity)
+subset(bigcategorical, ! linearity)
+@
+This is the correct linearity, agreeing with Sections~11.5 and~11.7
+of the supplementary material for \citet{eck-geyer}.
+
+Fit the LCM.
+<<example-vi-glm-lcm>>=
+gout.lcm <- glm(y ~ (.)^4, family = "poisson",
+    data = bigcategorical, subset = linearity)
+# summary(gout.lcm) # too big to show
+@
+
+We can tell by looking at inverse Fisher information for this model
+that it does not have solution at infinity.  So this is the correct
+LCM.  We are done with this example.
+<<example-vi-glm-vcov>>=
+<<example-iv-glm-vcov>>
+@
+
+
+
 
 
 
