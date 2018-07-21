@@ -615,7 +615,7 @@ Clean R global environment, except keep function \texttt{invlogit}.
 
 \subsection{Fit Using R Function \texttt{glm}}
 
-This is the sports separation example of Geyer
+This is the sports example of Geyer
 (see help for this dataset for source).
 <<example-v-glm>>=
 data(sports)
@@ -658,24 +658,21 @@ all.equal(mout$hessian, fish.glm, check.attributes = FALSE)
 Look at eigenvalues of Fisher information matrix the MLE found by
 R function \texttt{glm}.
 <<example-v-fish-eigen>>=
-eigen(mout$hessian, symmetric = TRUE, only.values = TRUE)$values
+<<example-i-fish-eigen>>
 @
 
 \subsection{Newton Step}
 
 Find Newton step.
 <<example-v-newt>>=
-newt.step <- solve(mout$hessian, - mout$gradient)
-newt.step
+<<example-i-newt>>
 @
+
+\subsection{Direction of Recession}
 
 This looks very close to the generalized direction of recession (GDOR)
 given by \citet[Table~4]{geyer-gdor} if we allow for the fact that
 the last coefficient (for the hogs) is being constrained to be zero.
-
-\subsection{Direction of Recession}
-
-Could this possibly be a direction of recession (DOR)?
 
 Map to saturated model canonical parameter space.
 <<example-v-newt-sat>>=
@@ -723,9 +720,7 @@ Here we see that we cannot take a huge step along the Newton path.
 The last point at which we are still going downhill on minus the log likelihood
 (uphill on the log likelihood itself) is a step
 <<example-v-beta-too>>=
-kstep <- max(which(path.grad < 0))
-kstep
-beta.too <- beta.try[kstep, ]
+<<example-iv-beta-too>>
 @
 
 This step is $2^\Sexpr{(0:7)[kstep]} = \Sexpr{2^(0:7)[kstep]}$ times
@@ -733,9 +728,7 @@ the Newton step.
 
 And redo the Fisher information calculation.
 <<example-v-fish-lcm>>=
-mout <- mlogl(beta.too)
-eout <- eigen(mout$hessian, symmetric = TRUE)
-eout$values
+<<example-ii-fish-lcm>>
 @
 
 We now determine the linearity vector for the LCM following
@@ -774,17 +767,14 @@ We can tell by looking at inverse Fisher information for this model
 that it does not have solution at infinity.  So this is the correct
 LCM.  We are done with this example.
 <<example-v-glm-vcov>>=
-v <- vcov(gout.lcm)
-v <- v[! is.na(coefficients(gout.lcm)), ]
-v <- v[ , ! is.na(coefficients(gout.lcm))]
-range(eigen(v, symmetric = TRUE, only.values = TRUE)$values)
+<<example-iv-glm-vcov>>
 @
 
 \subsection{Clean Up}
 
 Clean R global environment.
 <<example-v-clean>>=
-rm(list = ls())
+<<example-i-clean>>
 @
 
 \section{Example VI}
