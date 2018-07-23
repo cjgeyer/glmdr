@@ -133,20 +133,44 @@ make.mlogl <- function(modmat, response, offset, family)
 #     f'(s) = < del l(beta0 + s (beta - beta0)), beta - beta0 >
 #
 # is increasing function.  We find zero of this function to make our step
+# or if there is no zero, we make a very large step
 
 newton <- function(beta, mlogl)
 {
     mout <- mlogl(beta)
-    step.newt <- (- solve(mout$hessian, mout$gradient))
+    step.newt <- solve(mout$hessian, - mout$gradient)
 
     linesearchfun <- function(s) {
          mout <- mlogl(beta + s * step.newt)
-         sum(mout$gradient, step.newt)
+         sum(mout$gradient * step.newt)
     }
 
-    uout <- uniroot(linesearchfun, interval = c(0, 1),  extendInt = "upX",
-        tol = sqrt(.Machine$double.eps))
-    beta + uout$root * step.newt
+    lower <- 0
+    upper <- 128
+
+    if (linesearchfun(lower) > 0) {
+        warning("Newton direction goes downhill on log likelihood; skipping")
+        return(beta + lower * step.newt)
+    }
+
+    if (linesearchfun(upper) < 0) {
+        return(beta + upper * step.newt)
+    }
+
+    repeat {
+        
+        middle <- (upper - lower) / 2
+
+        if (linesearchfun(middle) < 0) {
+            lower <- middle
+        } else {
+            upper <- middle
+        }
+
+        if ((upper - lower) / upper < 1 / 4) {
+            return(beta + lower * step.newt)
+        }
+    }
 }
 
 glmdr <- function(formula, family = c("binomial", "poisson"), data,
@@ -184,29 +208,28 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     modmat.drop <- modmat[ , ! outies]
     beta.drop <- coefficients(gout)[! outies]
 
-    # do several newton-with-line-search iterations
+    # do one newton-with-line-search iteration
+    # or should we do more?
 
     mlogl <- make.mlogl(modmat.drop, resp, offs, family)
-    for (i in 1:2)
-        beta.drop <- newton(beta.drop, mlogl)
+    beta.drop <- newton(beta.drop, mlogl)
 
     mout <- mlogl(beta.drop)
     fish <- mout$hessian
     eout <- eigen(fish, symmetric = TRUE)
-    sval <- pmax(eout$values, 0)
-    sval <- sqrt(sval)
-    r <- rankMatrix(fish, sval = sval, method = "maybeGrad")
 
-    cat("DEBUG: sval =", sval, "\n")
-    cat("DEBUG: rank =", r, "\n")
+    # use fixed tolerance
+    # or should we make this an optional argument?
+    # or should multiply by max(eout$values) ?? (if large) !!
+    is.zero <- eout$values < (.Machine$double.eps)^(3 / 4)
 
-    if (r == ncol(fish)) {
+    if (! any(is.zero)) {
         # nothing left to do
         # MLE exists in the conventional sense
         return(structure(list(gout = gout), class = "glmdr"))
     }
 
-    if (r == 0) {
+    if (all(is.zero)) {
         # nearly nothing left to do
         # LCM is completely degenerate
         linearity <- rep(FALSE, nrow(modmat))
@@ -214,22 +237,24 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
             class = "glmdr"))
     }
 
-    # at this point we have 0 < r < ncol(fish) = ncol(modmat)
+    # at this point we have some but not all zero eigenvalues
 
-    nulls <- eout$vectors[ , 1:ncol(fish) > r, drop = FALSE]
-    nulls.saturated <- modmat %*% nulls
-    linearity <- zapsmall(rowSums(nulls.saturated^2)) == 0
+    nulls <- eout$vectors[ , is.zero, drop = FALSE]
+    nulls.saturated <- modmat.drop %*% nulls
+
+    # use same tolerance here as above
+    # or different?
+    linearity <- apply(abs(nulls.saturated), 1, max) <
+        (.Machine$double.eps)^(3 / 4)
 
     # now we need to do the MLE for the LCM
     # this is complicated by there may having been a subset argument originally
-    # it seems that (cannot find out where this is documented
-
-    subset.lcm <- rownames(modmat)
-    subset.lcm <- subset.lcm[linearity]
+    # so we use as data the model frame extracted from the glm fit
 
     # call glm again
 
-    call.glm$subset <- subset.lcm
+    call.glm$data <- mf
+    call.glm$subset <- linearity
     gout.lcm <- eval(call.glm, parent.frame())
 
     return(structure(list(gout = gout, lcm = gout.lcm,

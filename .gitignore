@@ -5,6 +5,7 @@
 *.Rcheck
 *.Rout
 *.tar.gz
+*.bak
 devel/dev.tex
 devel/dev.R
 devel/polish.tex
