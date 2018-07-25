@@ -216,8 +216,9 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # http://r.789695.n4.nabble.com/Suppress-specific-warnings-td4664591.html
     gout <- withCallingHandlers(eval(call.glm, parent.frame()),
         warning = function(w)
-            if(grepl("fitted .* numerically 0 .* occurred", w$message))
-                invokeRestart("muffleWarning"))
+            if(grepl("fitted .* numerically 0 .* occurred", w$message) ||
+                grepl("algorithm did not converge", w$message))
+                    invokeRestart("muffleWarning"))
 
     # extract model matrix, response vector, and offset vector
     modmat <- gout$x
@@ -243,7 +244,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # use fixed tolerance
     # or should we make this an optional argument?
     # or should multiply by max(eout$values) ?? (if large) !!
-    is.zero <- eout$values < (.Machine$double.eps)^(3 / 4)
+    is.zero <- eout$values < (.Machine$double.eps)^(5 / 8)
 
     if (! any(is.zero)) {
         # nothing left to do
@@ -270,29 +271,10 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
         (.Machine$double.eps)^(3 / 4)
 
     # now we need to do the MLE for the LCM
-    # this is complicated by there may having been a subset argument originally
-    # so we use as data the model frame extracted from the glm fit
-
     # call glm again
 
-    call.glm$data <- mf
-    call.glm$subset <- linearity
-    gout.lcm <- try(eval(call.glm, parent.frame()), silent = TRUE)
-
-    # above fails if formula was something like
-    #
-    #     cbind(wins, losses) ~ 0 + .
-    #
-    # because mf does not have columns named wins and losses
-    # but instead a matrix whose columns are named that
-
-    if (inherits(gout.lcm, "try-error")) {
-        resp.too <- as.data.frame(resp)
-        other.too <- mf[-1L]
-        data.too <- data.frame(resp.too, other.too)
-        call.glm$data <- data.too
-        gout.lcm <- eval(call.glm, parent.frame())
-}
+    call.glm$subset <- rownames(modmat)[linearity]
+    gout.lcm <- eval(call.glm, parent.frame())
 
     return(structure(list(om = gout, lcm = gout.lcm,
         linearity = linearity, nulls = nulls), class = "glmdr"))
