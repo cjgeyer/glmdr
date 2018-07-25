@@ -1,4 +1,5 @@
-Right now nothing is working.  Nothing to see here yet.
+Right now only the fitting function (glmdr) and its corresponding
+summary method work.  Not much to see here yet.
 
 This is an [R](https://www.r-project.org/) package, which will eventually
 be submitted to [CRAN](https://cran.r-project.org/) but is still in development
