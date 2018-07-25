@@ -140,26 +140,48 @@ newton <- function(beta, mlogl)
     mout <- mlogl(beta)
     step.newt <- solve(mout$hessian, - mout$gradient)
 
+    prev.grad <- sum(mout$gradient * step.newt)
+
+    if (prev.grad >= 0) {
+        warning("Newton direction starts downhill on log likelihood",
+            " skipping line search in Newton direction")
+        return(beta)
+    }
+
     linesearchfun <- function(s) {
          mout <- mlogl(beta + s * step.newt)
          sum(mout$gradient * step.newt)
     }
 
+    i <- 0
+    repeat {
+
+        # do maximum of 20 times Newton step
+        if (i == 20) break
+
+        next.grad <- linesearchfun(i + 1)
+
+        if (next.grad >= 0) break
+
+        if (next.grad - prev.grad <= 0) break
+
+        i <- i + 1
+
+        prev.grad <- next.grad
+    }
+
+    if (i >= 2) return(beta + i * step.newt)
+
+    # if i < 2 do more careful search
+
     lower <- 0
-    upper <- 128
+    upper <- 2
 
-    if (linesearchfun(lower) > 0) {
-        warning("Newton direction goes downhill on log likelihood; skipping")
-        return(beta + lower * step.newt)
-    }
-
-    if (linesearchfun(upper) < 0) {
-        return(beta + upper * step.newt)
-    }
+    stopifnot(linesearchfun(0) < 0 && linesearchfun(2) > 0)
 
     repeat {
         
-        middle <- (upper - lower) / 2
+        middle <- (upper + lower) / 2
 
         if (linesearchfun(middle) < 0) {
             lower <- middle
@@ -167,7 +189,7 @@ newton <- function(beta, mlogl)
             upper <- middle
         }
 
-        if ((upper - lower) / upper < 1 / 4) {
+        if (upper - lower < 0.1) {
             return(beta + lower * step.newt)
         }
     }
@@ -255,7 +277,22 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
 
     call.glm$data <- mf
     call.glm$subset <- linearity
-    gout.lcm <- eval(call.glm, parent.frame())
+    gout.lcm <- try(eval(call.glm, parent.frame()), silent = TRUE)
+
+    # above fails if formula was something like
+    #
+    #     cbind(wins, losses) ~ 0 + .
+    #
+    # because mf does not have columns named wins and losses
+    # but instead a matrix whose columns are named that
+
+    if (inherits(gout.lcm, "try-error")) {
+        resp.too <- as.data.frame(resp)
+        other.too <- mf[-1L]
+        data.too <- c(resp.too, other.too)
+        call.glm$data <- data.too
+        gout.lcm <- eval(call.glm, parent.frame())
+}
 
     return(structure(list(gout = gout, lcm = gout.lcm,
         linearity = linearity, nulls = nulls), class = "glmdr"))
