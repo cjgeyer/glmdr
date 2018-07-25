@@ -6,7 +6,7 @@ summary.glmdr <- function(object, correlation = FALSE, symbolic.cor = FALSE,
 
     if (is.null(object$linearity)) {
         mycall <- call
-        mycall$object <- object$gout
+        mycall$object <- object$om
         mycall[[1L]] <- quote(base::summary)
         sout <- eval(mycall, parent.frame())
         result <- list(overview =
@@ -47,7 +47,7 @@ print.summary.glmdr <- function(x, digits = max(3, getOption("digits") - 3),
 
     cat("\n")
     for (o in x$overview)
-        cat("o", "\n")
+        cat(o, "\n")
     cat("\n")
 
     if (x$type != "degenerate") {

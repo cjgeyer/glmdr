@@ -248,14 +248,14 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     if (! any(is.zero)) {
         # nothing left to do
         # MLE exists in the conventional sense
-        return(structure(list(gout = gout), class = "glmdr"))
+        return(structure(list(om = gout), class = "glmdr"))
     }
 
     if (all(is.zero)) {
         # nearly nothing left to do
         # LCM is completely degenerate
         linearity <- rep(FALSE, nrow(modmat))
-        return(structure(list(gout = gout, linearity = linearity),
+        return(structure(list(om = gout, linearity = linearity),
             class = "glmdr"))
     }
 
@@ -289,12 +289,12 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     if (inherits(gout.lcm, "try-error")) {
         resp.too <- as.data.frame(resp)
         other.too <- mf[-1L]
-        data.too <- c(resp.too, other.too)
+        data.too <- data.frame(resp.too, other.too)
         call.glm$data <- data.too
         gout.lcm <- eval(call.glm, parent.frame())
 }
 
-    return(structure(list(gout = gout, lcm = gout.lcm,
+    return(structure(list(om = gout, lcm = gout.lcm,
         linearity = linearity, nulls = nulls), class = "glmdr"))
 }
 

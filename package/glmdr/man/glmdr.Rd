@@ -97,7 +97,7 @@ glmdr(formula, family = c("binomial", "poisson"), data,
   An object of class \code{"glmdr"} is a list containing some or all of the
   following components:
 
-  \item{gout}{the result of invoking \code{\link{glm}} with the arguments
+  \item{om}{the result of invoking \code{\link{glm}} with the arguments
       to this function.  May or may not be valid.  See \code{\link[stats]{glm}}
       for the components of this object.}
   \item{linearity}{a logical vector that says which components of the response
@@ -116,7 +116,8 @@ glmdr(formula, family = c("binomial", "poisson"), data,
       Fisher information matrix for the OM evaluated at the MLE for the LCM
       (a limit in which some parameters have gone to infinity).  T
       This determines the LCM, as explained in Eck and Geyer (submitted),
-      but does not need to be interpreted by ordinary users.}
+      but does not need to be interpreted by ordinary users.
+      Not present when \code{lcm} not present.}
 }
 \seealso{
   \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.

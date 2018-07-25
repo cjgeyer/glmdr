@@ -4,9 +4,9 @@
 
  data(sports)
 
- gout <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
- gout <- gout$gout
- summary(gout)
+ gout <- glm(cbind(wins, losses) ~ 0 + ., family = "binomial",
+     data = sports, x = TRUE)
+ # summary(gout) # do not print summaries in tests, not same on all computers
 
  # extract model matrix, response vector, and offset vector
 
@@ -15,9 +15,9 @@
  resp <- model.response(mf)
  offs <- model.offset(mf)
 
- modmat
- resp
- offs
+ # modmat # DEBUG only
+ # resp   # DEBUG only
+ # offs   # DEBUG only
 
  # have to deal with dropped predictors
  outies <- is.na(coefficients(gout))
@@ -55,9 +55,8 @@
 
  data(catrec)
 
- gout <- glmdr(y ~ 0 + (.)^3, family = "poisson", data = catrec)
- gout <- gout$gout
- summary(gout)
+ gout <- glm(y ~ (.)^3, family = "poisson", data = catrec, x = TRUE)
+ # summary(gout) # do not print summaries in tests, not same on all computers
 
  # extract model matrix, response vector, and offset vector
 
@@ -66,9 +65,9 @@
  resp <- model.response(mf)
  offs <- model.offset(mf)
 
- modmat
- resp
- offs
+ # modmat # DEBUG only
+ # resp   # DEBUG only
+ # offs   # DEBUG only
 
  # have to deal with dropped predictors
  outies <- is.na(coefficients(gout))
