@@ -84,7 +84,7 @@ inference <- function(object, alpha = 0.05){
     		result
   		}
 
-  		beta.start <- c(0, 0)
+  		beta.start <- rep(0, p)
   		bounds <- rep(NA_real_, length(y))
   		for (i in seq(along = bounds)) {
       		aout <- auglag(beta.start, f, df, g, dg,

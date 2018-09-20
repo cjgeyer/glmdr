@@ -209,6 +209,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     call.glm <- call
     call.glm$family <- family
     call.glm$x <- TRUE
+    call.glm$y <- TRUE
     call.glm[[1L]] <- quote(stats::glm)
     # note: suppression of the specific warning won't work
     # "if someone is running in a locale where the warning message
@@ -222,6 +223,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
 
     # extract model matrix, response vector, and offset vector
     modmat <- gout$x
+    y <- gout$y
     mf <- model.frame(gout)
     resp <- model.response(mf)
     offs <- model.offset(mf)
@@ -256,7 +258,8 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
         # nearly nothing left to do
         # LCM is completely degenerate
         linearity <- rep(FALSE, nrow(modmat))
-        return(structure(list(om = gout, linearity = linearity),
+        return(structure(list(om = gout, linearity = linearity, 
+            modmat = modmat, family = family, y = y),
             class = "glmdr"))
     }
 
@@ -278,6 +281,6 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
 
     return(structure(list(om = gout, lcm = gout.lcm,
         linearity = linearity, nulls = nulls, modmat = modmat,
-        family = family), class = "glmdr"))
+        family = family, y = y), class = "glmdr"))
 }
 

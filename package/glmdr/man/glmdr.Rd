@@ -121,6 +121,7 @@ glmdr(formula, family = c("binomial", "poisson"), data,
   \item{modmat}{The model matrix corresponding to the \code{om} model fit.}
   \item{family}{The exponential family supplied by the user in the 
     \code{family} argument.}
+  \item{y}{The response vector.}
 }
 \seealso{
   \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.
