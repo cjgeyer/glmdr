@@ -1,6 +1,8 @@
 
 \documentclass{article}
 
+\usepackage{amstext}
+\usepackage{indentfirst}
 \usepackage{url}
 
 \newcommand{\set}[1]{\{\, #1 \,\}}
@@ -12,6 +14,8 @@
 \author{Charles J. Geyer}
 
 \maketitle
+
+\section{Introduction}
 
 Let $l_n$ be the log likelihood for sample size $n$ for some statistical
 model, and let $\theta^*_n$ be the maximum likelihood estimate (MLE)
@@ -34,6 +38,80 @@ Note that $l_n$ and $J_n$ are for the larger model of the two nested
 models being compared and that $\theta^*_n$ is the MLE for the smaller
 model of the two \emph{expressed in the parameter space of the larger
 model}.
+
+\section{Implementation}
+
+This is part of the implementation of method \texttt{glmdr} of R generic
+function \texttt{anova}.  Part of this function checks whether models
+are nested (see design document \texttt{nested.pdf} in this directory).
+Part of this function does LRT (likelihood ratio tests,
+a.~k.~a.\ analysis of deviance).  This document does not cover that either.
+
+As the introduction says, we need three things.
+\begin{itemize}
+\item The MLE for the smaller model, expressed in the parameter space of
+the larger model (it already having being checked that the former is a submodel
+of (is nested within) the latter).   Since the check for nesting is completely
+general, this step is nontrivial.
+\item The first derivative vector for the larger model evaluated at the MLE
+for the smaller model calculated in step one.
+\item The second derivative matrix for the larger model evaluated at the MLE
+for the smaller model calculated in step one.
+\end{itemize}
+
+\subsection{MLE}
+
+Let $\hat{\beta}_\text{small}$ denote the MLE in the parameterization
+of the smaller model.  Let $a_\text{small}$ and $a_\text{large}$ be the
+offset vectors of the smaller and larger models and
+$M_\text{small}$ and $M_\text{large}$ the model matrices.
+
+The the problem of step one in our list is to find a $\hat{\beta}_\text{large}$
+that satisfies
+$$
+   a_\text{small} + M_\text{small} \hat{\beta}_\text{small}
+   =
+   a_\text{large} + M_\text{large} \hat{\beta}_\text{large}
+$$
+Hence $\hat{\beta}_\text{large}$ is any solution for $\beta$ of the
+linear system
+$$
+   M_\text{large} \beta
+   =
+   a_\text{small} - a_\text{large} + M_\text{small} \hat{\beta}_\text{small}
+$$
+(if the solution is not unique, then nonuniqueness does not matter).
+
+As usual in R, we use R functions \texttt{qr} and \texttt{qr.solve} to
+solve linear equations.
+\begin{verbatim}
+foo <- offset.small - offset.large +
+    modmat.small %*% beta.hat.small
+bar <- qr(modmat.large)
+beta.hat.large <- qr.solve(bar, beta.hat.small)
+\end{verbatim}
+
+\subsection{Derivatives}
+
+There is no accessible function to find derivatives of the models R package
+\texttt{glmdr} fits.  But there is a non-accessible function that we can
+use inside code of the package.  This is the R function returned by
+R function \texttt{make.mlogl} defined in the file \texttt{R/glmdr.R}
+(R function \texttt{make.mlogl} is a higher-order function that returns
+function).  An example of the use of this function is inside R function
+\texttt{glmdr}.
+
+We would do something like
+\begin{verbatim}
+mlogl <- make.mlogl(modmat.large, resp, offset.large, family)
+mout <- mlog(beta.large)
+\end{verbatim}
+where \texttt{beta.large} is as discussed above.
+
+Now the Rao test statistic is
+\begin{verbatim}
+as.numeric(t(mout$gradient) %*% mout$hessian %*% mout$gradient)
+\end{verbatim}
 
 \end{document}
 
