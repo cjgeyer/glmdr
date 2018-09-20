@@ -11,7 +11,7 @@
   Each team plays 2 games against every other team.
   The response is the matrix \code{cbind(wins, losses)}.
   The predictor variables for a Bradley-Terry model are the rest of the
-  column of the data frame.
+  columns of the data frame.
 
   The formula \code{cbind(wins, losses) ~ 0 + .} describes the model.
 }

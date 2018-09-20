@@ -114,7 +114,7 @@ glmdr(formula, family = c("binomial", "poisson"), data,
       identifiable parameters to estimate.}
   \item{nulls}{a matrix, the columns of which span the null space of the
       Fisher information matrix for the OM evaluated at the MLE for the LCM
-      (a limit in which some parameters have gone to infinity).  T
+      (a limit in which some parameters have gone to infinity).
       This determines the LCM, as explained in Eck and Geyer (submitted),
       but does not need to be interpreted by ordinary users.
       Not present when \code{lcm} not present.}

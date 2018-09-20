@@ -1,0 +1,39 @@
+
+\documentclass{article}
+
+\usepackage{url}
+
+\newcommand{\set}[1]{\{\, #1 \,\}}
+
+\begin{document}
+
+\title{Rao Tests}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+Let $l_n$ be the log likelihood for sample size $n$ for some statistical
+model, and let $\theta^*_n$ be the maximum likelihood estimate (MLE)
+for a smooth submodel.
+The Rao test statistic is
+\begin{equation} \label{eq:rao}
+   R_n = 
+   \bigl(\nabla l_n(\theta^*_n)\bigr)^T J_n(\theta^*_n)^{-1}
+   \nabla l_n(\theta^*_n),
+\end{equation}
+where 
+$$
+   J_n(\theta) = - \nabla^2 l_n(\theta)
+$$
+is the observed Fisher information matrix for sample size $n$
+(this is copied from the lecture notes
+\url{http://www.stat.umn.edu/geyer/8112/notes/tests.pdf}).
+
+Note that $l_n$ and $J_n$ are for the larger model of the two nested
+models being compared and that $\theta^*_n$ is the MLE for the smaller
+model of the two \emph{expressed in the parameter space of the larger
+model}.
+
+\end{document}
+

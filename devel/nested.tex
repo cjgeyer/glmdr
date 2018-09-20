@@ -1,0 +1,35 @@
+
+\documentclass{article}
+
+\usepackage{amstext}
+
+\newcommand{\set}[1]{\{\, #1 \,\}}
+
+\begin{document}
+
+\title{When are Models Nested?}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+Suppose we have two regression-like models that have response vectors $y_i$,
+model matrices $M_i$, and offset vectors $a_i$, for $i = 1, 2$.
+
+The first requirement for the models to be nested is that they are for
+the same data, that is $y_1 = y_2$ (as vectors).
+
+Let $V_i$ be the column space of $M_i$, $i = 1, 2$.
+The second requirement is that
+$$
+   a_1 + V_1 \subset a_2 + V_2 \qquad \text{(as sets)}.
+$$
+that is, we need $a_1 - a_2 \in V_2$ and $v \in V_2$ for every column $v$
+of $V_1$.
+
+The way we check these is to do a QR decomposition of $V_2$ and then
+regress $a_1 - a_2$ on $V_2$ and regress each column $v$ of $V_1$ on $V_2$.
+We then check that the residual vector from each such regression is
+zero to within some tolerance.
+
+\end{document}

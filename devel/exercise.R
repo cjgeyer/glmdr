@@ -34,7 +34,7 @@ data(bigcategorical)
 gout <- glmdr(y ~ 0 + (.)^4, family = "poisson", data = bigcategorical)
 summary(gout)
 
-# linearity correct?  Compare with Sections~11.5 and~11.7
+# linearity correct?  Compare with Sections 11.5 and 11.7
 # of the supplementary material for Eck and Geyer (submitted).
 subset(bigcategorical, ! gout$linearity)
 
