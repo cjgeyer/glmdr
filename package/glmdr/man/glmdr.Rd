@@ -118,6 +118,9 @@ glmdr(formula, family = c("binomial", "poisson"), data,
       This determines the LCM, as explained in Eck and Geyer (submitted),
       but does not need to be interpreted by ordinary users.
       Not present when \code{lcm} not present.}
+  \item{modmat}{The model matrix corresponding to the \code{om} model fit.}
+  \item{family}{The exponential family supplied by the user in the 
+    \code{family} argument.}
 }
 \seealso{
   \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.

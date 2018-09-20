@@ -1,10 +1,11 @@
-export(glmdr)
+export(glmdr, inference)
 
 importFrom(stats, coefficients)
 importFrom(stats, glm)
 importFrom(stats, model.frame)
 importFrom(stats, model.offset)
 importFrom(stats, model.response)
+importFrom(alabama, auglag)
 
 S3method(print, summary.glmdr)
 S3method(summary, glmdr)

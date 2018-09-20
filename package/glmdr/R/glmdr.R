@@ -277,6 +277,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     gout.lcm <- eval(call.glm, parent.frame())
 
     return(structure(list(om = gout, lcm = gout.lcm,
-        linearity = linearity, nulls = nulls), class = "glmdr"))
+        linearity = linearity, nulls = nulls, modmat = modmat,
+        family = family), class = "glmdr"))
 }
 
