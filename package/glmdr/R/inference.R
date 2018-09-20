@@ -103,6 +103,10 @@ inference <- function(object, alpha = 0.05){
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
   		out <- data.frame(modmat, y, lower = bounds.lower.p, upper = bounds.upper.p)
   	}
+
+  	if(all(linearity != FALSE)){
+
+  	}
   }
 
 
