@@ -23,7 +23,7 @@ inference <- function(object, alpha = 0.05){
   out <- NULL
 	# For completely degenerate logistic regression 
   if(family == "binomial"){
-    if(all(linearity == FALSE)){
+
 	    f <- function(beta, k, ...) {
         stopifnot(is.numeric(beta))
     		stopifnot(is.finite(beta))
@@ -90,7 +90,7 @@ inference <- function(object, alpha = 0.05){
       		aout <- auglag(beta.start, f, df, g, dg,
           		control.outer = list(trace = FALSE),
           		k = i, alpha = alpha)
-      		if (aout$convergence == 0)
+      		if (aout$convergence %in% c(0,9))
           		bounds[i] <- aout$value
   		}
 
@@ -102,14 +102,90 @@ inference <- function(object, alpha = 0.05){
   		bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
   		out <- data.frame(modmat, y, lower = bounds.lower.p, upper = bounds.upper.p)
-  	}
-
-  	if(all(linearity != FALSE)){
-
-  	}
+  
   }
 
+  if(family == "poisson"){
 
+      ## Need to reconcile this with the glmdr library. Right now it will not work.
+      ## Need theta.hat
+      f <- function(xi, k, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(k))
+        stopifnot(is.finite(k))
+        stopifnot(length(k) == 1)
+        stopifnot(as.integer(k) == k)
+        stopifnot(k %in% 1:nrow(modmat))
+        stopifnot(! linearity[k])
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        - theta[k]
+      }
+
+      df <- function(xi, k, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(k))
+        stopifnot(is.finite(k))
+        stopifnot(length(k) == 1)
+        stopifnot(as.integer(k) == k)
+        stopifnot(k %in% 1:nrow(modmat))
+        stopifnot(! linearity[k])
+        as.vector(- oh[k, ])
+      }
+
+      g <- function(xi, alpha, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(alpha))
+        stopifnot(length(alpha) == 1)
+        stopifnot(0 < alpha && alpha < 1)
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        mu <- exp(theta)
+          - sum(mu[! linearity]) - log(alpha)
+      }
+
+      dg <- function(xi, alpha, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(alpha))
+        stopifnot(length(alpha) == 1)
+        stopifnot(0 < alpha && alpha < 1)
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        mu <- exp(theta)
+        mu.constr <- mu[! linearity]
+        oh.constr <- oh[! linearity, , drop = FALSE]
+        mu.constr <- rbind(as.vector(mu.constr))
+          - mu.constr %*% oh.constr
+      }
+      
+      ## Need to reconcile this with the glmdr library. Right now it will not work.
+      ## Need xi.start
+      xi.start <- rep(0, ncol(nulls))
+      uppers <- rep(NA_real_, nrow(modmat))
+      for (i in seq(along = uppers))
+      if (! linearity[i]) {
+        aout <- auglag(xi.start, f, df, g, dg,
+        control.outer = list(trace = FALSE, itmax = 250),
+        k = i, alpha = 0.05)
+        if (aout$convergence %in% c(0, 9))  uppers[i] <- (- aout$value)
+      }
+
+      uppers.mu <- exp(uppers)
+      foo <- data.frame(dat, upper = round(uppers.mu, 5))
+      subset(foo, ! linearity)
+
+
+
+
+  }
 
   return(out)
 }
