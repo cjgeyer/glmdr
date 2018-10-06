@@ -13,6 +13,7 @@ inference <- function(object, alpha = 0.05){
   om <- object$om 
   family <- object$family
   modmat <- object$modmat
+  nulls <- object$nulls
   ## the following line does not yet work
   y <- object$y
 
@@ -109,6 +110,8 @@ inference <- function(object, alpha = 0.05){
 
       ## Need to reconcile this with the glmdr library. Right now it will not work.
       ## Need theta.hat
+      theta.hat <- predict(om)
+      
       f <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
