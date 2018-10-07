@@ -66,7 +66,7 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^0.75,
         residoffdiff <- qr.resid(qr2, offdiff)
         norm.offdiff <- sqrt(sum(offdiff^2))
         norm.residoffdiff <- sqrt(sum(offdiffresid^2))
-        if (norm.residoffdiff / norm.offdiff > tolerance))
+        if (norm.residoffdiff / norm.offdiff > tolerance)
             stop("model offsets not nested\nmodel ",
                 i - 1, " and model ", i)
     }
