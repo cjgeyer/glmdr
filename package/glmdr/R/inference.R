@@ -108,10 +108,9 @@ inference <- function(object, alpha = 0.05){
 
   if(family == "poisson"){
 
-      ## Need to reconcile this with the glmdr library. Right now it will not work.
-      ## Need theta.hat
       theta.hat <- predict(om)
-      
+      oh <- modmat %*% nulls
+
       f <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
@@ -169,8 +168,6 @@ inference <- function(object, alpha = 0.05){
           - mu.constr %*% oh.constr
       }
       
-      ## Need to reconcile this with the glmdr library. Right now it will not work.
-      ## Need xi.start
       xi.start <- rep(0, ncol(nulls))
       uppers <- rep(NA_real_, nrow(modmat))
       for (i in seq(along = uppers))
@@ -182,11 +179,9 @@ inference <- function(object, alpha = 0.05){
       }
 
       uppers.mu <- exp(uppers)
-      foo <- data.frame(dat, upper = round(uppers.mu, 5))
-      subset(foo, ! linearity)
-
-
-
+      #foo <- data.frame(dat, upper = round(uppers.mu, 5))
+      foo <- data.frame(modmat, y, upper = round(uppers.mu, 5))
+      out <- subset(foo, ! linearity)
 
   }
 
