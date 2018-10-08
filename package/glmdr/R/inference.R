@@ -16,7 +16,6 @@ inference <- function(object, alpha = 0.05){
   nulls <- object$nulls
   ## the following line does not yet work
   y <- object$y
-
   #lcm <- object$lcm
 
   p <- ncol(modmat)
@@ -24,6 +23,8 @@ inference <- function(object, alpha = 0.05){
   out <- NULL
 	# For completely degenerate logistic regression 
   if(family == "binomial"){
+
+    if(class(y) == "integer"){
 
 	    f <- function(beta, k, ...) {
         stopifnot(is.numeric(beta))
@@ -98,12 +99,131 @@ inference <- function(object, alpha = 0.05){
   		bounds <- ifelse(y == 1, bounds, - bounds)
   		bounds.lower.theta <- ifelse(y == 1, bounds, -Inf)
   		bounds.upper.theta <- ifelse(y == 1, Inf, bounds)
-  		#data.frame(x, y, lower = bounds.lower.theta, upper = bounds.upper.theta)
 
   		bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
   		foo <- data.frame(modmat, y, lower = bounds.lower.p, upper = bounds.upper.p)
       out <- subset(foo, ! linearity)
+
+    }
+
+    if(class(y) == "matrix"){ ## Bradley-Terry model
+
+      theta.hat <- predict(om)
+      invlogit <- function(theta) 1 / (1 + exp(-  theta))
+      n <- rowSums(y)      
+      fish.saturated <- n * diag(invlogit(theta.hat) * invlogit(- theta.hat))
+      fish <- t(modmat) %*% fish.saturated %*% modmat
+      eout <- eigen(fish, symmetric = TRUE)
+      ## Need to make decision tolerance streamlined
+      r <- rankMatrix(fish, method = "useGrad", sval = eout$values) 
+      nulls <- eout$vectors[ , 1:nrow(fish) > r, drop = FALSE]
+      #is.zero <- eout$values < (.Machine$double.eps)^(3 / 4)
+      #nulls <- eout$vectors[ , is.zero, drop = FALSE]
+      oh <- modmat %*% nulls
+      y.int <- y[, 1]
+
+      f <- function(xi, k, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(k))
+        stopifnot(is.finite(k))
+        stopifnot(length(k) == 1)
+        stopifnot(as.integer(k) == k)
+        stopifnot(k %in% 1:nrow(modmat))
+        stopifnot(! linearity[k])
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        ifelse(y.int == n, theta, - theta)[k]
+      }
+
+      df <- function(xi, k, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(k))
+        stopifnot(is.finite(k))
+        stopifnot(length(k) == 1)
+        stopifnot(as.integer(k) == k)
+        stopifnot(k %in% 1:nrow(modmat))
+        stopifnot(! linearity[k])
+        ifelse(y.int == n, 1, -1)[k] * as.vector(oh[k, ])
+      }
+
+      g <- function(xi, alpha, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(alpha))
+        stopifnot(length(alpha) == 1)
+        stopifnot(0 < alpha && alpha < 1)
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        logp <- ifelse(theta < 0, theta - log1p(exp(theta)),
+          - log1p(exp(- theta)))
+        logq <- ifelse(theta < 0, - log1p(exp(theta)),
+          - theta - log1p(exp(- theta)))
+        logpboundary <- y.int * logp + (n - y.int) * logq
+        logpboundary <- logpboundary[! linearity]
+        sum(logpboundary) - log(alpha)
+      }
+
+      dg <- function(xi, alpha, ...) {
+        stopifnot(is.numeric(xi))
+        stopifnot(is.finite(xi))
+        stopifnot(length(xi) == ncol(nulls))
+        stopifnot(is.numeric(alpha))
+        stopifnot(length(alpha) == 1)
+        stopifnot(0 < alpha && alpha < 1)
+        xi <- cbind(as.vector(xi))
+        theta <- theta.hat + oh %*% xi
+        pp <- ifelse(theta < 0, exp(theta) / (1 + exp(theta)),
+          1 / (1 + exp(- theta)))
+        qq <- ifelse(theta < 0, 1 / (1 + exp(theta)),
+          exp(- theta) / (1 + exp(- theta)))
+        # apparently R function auglag wants the jacobian of
+        # the inequality constraints to be a matrix
+        # in this case since g returns a vector of length 1
+        # this function should return a 1 by p matrix
+        result <- ifelse(y.int < n, y.int - n * pp, n * qq)
+        result.constr <- result[! linearity]
+        oh.constr <- oh[! linearity, ]
+        result.constr %*% oh.constr
+      }
+
+      xi.start <- rep(0, ncol(nulls))
+      bounds <- rep(NA_real_, length(y.int))
+      for (i in seq(along = bounds))
+        if (! linearity[i]) {
+          aout <- auglag(xi.start, f, df, g, dg,
+              control.outer = list(trace = FALSE),
+              k = i, alpha = 0.05)
+          if (aout$convergence %in% c(0, 9))
+              bounds[i] <- aout$value
+        }
+
+
+      bounds <- ifelse(y.int == n, bounds, - bounds)
+      bounds.lower.theta <- ifelse(y.int == 0, -Inf, bounds)
+      bounds.upper.theta <- ifelse(y.int == n, Inf, bounds)
+      bounds.lower.theta[linearity] <- NA_real_
+      bounds.upper.theta[linearity] <- NA_real_
+      #print(data.frame(plus = team.names[team.plus],
+      #  minus = team.names[team.minus], wins, losses,
+      #  lower = bounds.lower.theta, upper = bounds.upper.theta),
+      #  row.names = FALSE, right = FALSE)
+
+      bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
+      bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
+      #print(data.frame(plus = team.names[team.plus],
+      #  minus = team.names[team.minus], wins, losses,
+      #  lower = bounds.lower.p, upper = bounds.upper.p),
+      #  row.names = FALSE, right = FALSE)
+      foo <- data.frame(modmat, y, lower = round(bounds.lower.p, 5), 
+        upper = round(bounds.upper.p, 5))
+      out <- subset(foo, !linearity)
+    }
 
   }
 
@@ -188,11 +308,6 @@ inference <- function(object, alpha = 0.05){
 
   return(out)
 }
-
-
-
-
-
 
 
 

@@ -5,7 +5,7 @@ Title: Exponential Family Generalized Linear Models Done Right
 Author: Charles J. Geyer <charlie@stat.umn.edu>.
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 3.0.0)
-Imports: stats, alabama
+Imports: stats, alabama, Matrix
 Suggests: numDeriv
 ByteCompile: TRUE
 Description: Exponential family generalized linear models (binomial, poisson,
