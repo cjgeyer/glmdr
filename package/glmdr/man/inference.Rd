@@ -21,7 +21,7 @@
 inference(object, alpha = 0.05)
 }
 \arguments{
-  \item{object}{A fitted object of class \code{gldr}.}
+  \item{object}{A fitted object of class \code{glmdr}.}
   \item{alpha}{A user-specified error tolerance. The default is set to 
     \code{alpha = 0.05}.}
 }

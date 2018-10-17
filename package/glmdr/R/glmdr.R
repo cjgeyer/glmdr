@@ -259,7 +259,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
         # LCM is completely degenerate
         linearity <- rep(FALSE, nrow(modmat))
         return(structure(list(om = gout, linearity = linearity, 
-            modmat = modmat, family = family, y = resp),
+            modmat = modmat.drop, family = family, y = resp),
             class = "glmdr"))
     }
 
@@ -271,7 +271,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # use same tolerance here as above
     # or different?
     linearity <- apply(abs(nulls.saturated), 1, max) <
-        (.Machine$double.eps)^(5 / 8)
+        (.Machine$double.eps)^(3 / 4)
 
     # now we need to do the MLE for the LCM
     # call glm again
@@ -280,7 +280,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     gout.lcm <- eval(call.glm, parent.frame())
 
     return(structure(list(om = gout, lcm = gout.lcm,
-        linearity = linearity, nulls = nulls, modmat = modmat,
+        linearity = linearity, nulls = nulls, modmat = modmat.drop,
         family = family, y = resp), class = "glmdr"))
 }
 

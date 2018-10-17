@@ -14,11 +14,10 @@ inference <- function(object, alpha = 0.05){
   family <- object$family
   modmat <- object$modmat
   nulls <- object$nulls
-  ## the following line does not yet work
   y <- object$y
   #lcm <- object$lcm
-
   p <- ncol(modmat)
+  n <- nrow(modmat)
 
   out <- NULL
 	# For completely degenerate logistic regression 
@@ -102,7 +101,8 @@ inference <- function(object, alpha = 0.05){
 
   		bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
-  		foo <- data.frame(modmat, y, lower = bounds.lower.p, upper = bounds.upper.p)
+  		foo <- data.frame(modmat, y, lower = bounds.lower.p, 
+        upper = bounds.upper.p)
       out <- subset(foo, ! linearity)
 
     }
@@ -110,20 +110,10 @@ inference <- function(object, alpha = 0.05){
     if(class(y) == "matrix"){ ## Bradley-Terry model
 
       theta.hat <- predict(om)
-      invlogit <- function(theta) 1 / (1 + exp(-  theta))
-      n <- rowSums(y)      
-      fish.saturated <- n * diag(invlogit(theta.hat) * invlogit(- theta.hat))
-      fish <- t(modmat) %*% fish.saturated %*% modmat
-      eout <- eigen(fish, symmetric = TRUE)
-      ## Need to make decision tolerance streamlined
-      r <- rankMatrix(fish, method = "useGrad", sval = eout$values) 
-      nulls <- eout$vectors[ , 1:nrow(fish) > r, drop = FALSE]
-      #is.zero <- eout$values < (.Machine$double.eps)^(3 / 4)
-      #nulls <- eout$vectors[ , is.zero, drop = FALSE]
       oh <- modmat %*% nulls
       y.int <- y[, 1]
 
-      f <- function(xi, k, ...) {
+      f2 <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -138,7 +128,7 @@ inference <- function(object, alpha = 0.05){
         ifelse(y.int == n, theta, - theta)[k]
       }
 
-      df <- function(xi, k, ...) {
+      df2 <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -151,7 +141,7 @@ inference <- function(object, alpha = 0.05){
         ifelse(y.int == n, 1, -1)[k] * as.vector(oh[k, ])
       }
 
-      g <- function(xi, alpha, ...) {
+      g2 <- function(xi, alpha, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -169,7 +159,7 @@ inference <- function(object, alpha = 0.05){
         sum(logpboundary) - log(alpha)
       }
 
-      dg <- function(xi, alpha, ...) {
+      dg2 <- function(xi, alpha, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -196,9 +186,9 @@ inference <- function(object, alpha = 0.05){
       bounds <- rep(NA_real_, length(y.int))
       for (i in seq(along = bounds))
         if (! linearity[i]) {
-          aout <- auglag(xi.start, f, df, g, dg,
+          aout <- auglag(xi.start, f2, df2, g2, dg2,
               control.outer = list(trace = FALSE),
-              k = i, alpha = 0.05)
+              k = i, alpha = alpha)
           if (aout$convergence %in% c(0, 9))
               bounds[i] <- aout$value
         }
@@ -229,10 +219,10 @@ inference <- function(object, alpha = 0.05){
 
   if(family == "poisson"){
 
-      theta.hat <- predict(om)
+      theta.hat <- predict.glm(om)
       oh <- modmat %*% nulls
 
-      f <- function(xi, k, ...) {
+      f3 <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -247,7 +237,7 @@ inference <- function(object, alpha = 0.05){
         - theta[k]
       }
 
-      df <- function(xi, k, ...) {
+      df3 <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -260,7 +250,7 @@ inference <- function(object, alpha = 0.05){
         as.vector(- oh[k, ])
       }
 
-      g <- function(xi, alpha, ...) {
+      g3 <- function(xi, alpha, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -273,7 +263,7 @@ inference <- function(object, alpha = 0.05){
           - sum(mu[! linearity]) - log(alpha)
       }
 
-      dg <- function(xi, alpha, ...) {
+      dg3 <- function(xi, alpha, ...) {
         stopifnot(is.numeric(xi))
         stopifnot(is.finite(xi))
         stopifnot(length(xi) == ncol(nulls))
@@ -293,9 +283,9 @@ inference <- function(object, alpha = 0.05){
       uppers <- rep(NA_real_, nrow(modmat))
       for (i in seq(along = uppers))
       if (! linearity[i]) {
-        aout <- auglag(xi.start, f, df, g, dg,
+        aout <- auglag(xi.start, f3, df3, g3, dg3,
         control.outer = list(trace = FALSE, itmax = 250),
-        k = i, alpha = 0.05)
+        k = i, alpha = alpha)
         if (aout$convergence %in% c(0, 9))  uppers[i] <- (- aout$value)
       }
 

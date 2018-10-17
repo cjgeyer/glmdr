@@ -1,5 +1,5 @@
 
-anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^0.75,
+anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
     test = c("LRT", "Rao")) {
 
     test <- match.arg(test)
