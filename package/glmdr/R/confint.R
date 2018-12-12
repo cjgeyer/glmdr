@@ -19,4 +19,5 @@ confint.glmdr <- function(object, parm, level = 0.95, ...){
   colnames(onesided.CI)[1] <- c("index")
   out <- list(onesided.CI = onesided.CI, confint = confint)
   return(out)
+  
 }

@@ -1,14 +1,10 @@
 
+
 inference <- function(object, alpha = 0.05){
 	linearity = object$linearity
 	if(all(linearity == TRUE)){
 	  stop("MLE is not at infinity, use glm functionality for inferences.")
 	}
-
-  #This function currently sucks. 
-  #It does nothing. 
-  #The glmdr fitting function needs to store the response vector 
-  #  from the original data.
 
   om <- object$om 
   family <- object$family
@@ -101,6 +97,7 @@ inference <- function(object, alpha = 0.05){
 
   		bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
+      colnames(modmat)[1] <- "intercept"
   		foo <- data.frame(modmat, y, lower = bounds.lower.p, 
         upper = bounds.upper.p)
       out <- subset(foo, ! linearity)
@@ -210,6 +207,7 @@ inference <- function(object, alpha = 0.05){
       #  minus = team.names[team.minus], wins, losses,
       #  lower = bounds.lower.p, upper = bounds.upper.p),
       #  row.names = FALSE, right = FALSE)
+      colnames(modmat)[1] <- "intercept"
       foo <- data.frame(modmat, y, lower = round(bounds.lower.p, 5), 
         upper = round(bounds.upper.p, 5))
       out <- subset(foo, !linearity)
@@ -291,6 +289,7 @@ inference <- function(object, alpha = 0.05){
 
       uppers.mu <- exp(uppers)
       #foo <- data.frame(dat, upper = round(uppers.mu, 5))
+      colnames(modmat)[1] <- "intercept"
       foo <- data.frame(modmat, y, upper = round(uppers.mu, 5))
       out <- subset(foo, ! linearity)
 
