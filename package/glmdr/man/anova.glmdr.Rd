@@ -2,7 +2,7 @@
 \alias{anova.glmdr}
 \title{Comparing Generalized Linear Model Fits}
 \usage{
-  anova.glmdr(object, ..., tolerance = .Machine$double.eps^(5/8),
+  \method{anova}{glmdr}(object, ..., tolerance = .Machine$double.eps^(5/8),
     test = c("LRT", "Rao"))
 }
 

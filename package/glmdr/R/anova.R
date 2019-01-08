@@ -6,6 +6,7 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
 
     objectlist <- list(object, ...)
 
+
     if (length(objectlist) < 2)
         stop("must compare two or more models")
     # We know anova.lm and anova.glm do something with just one
@@ -19,6 +20,7 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
 
     # check that all models have the same response
     responses <- lapply(objectlist, function(o) o$om$y)
+
     sameresp <- sapply(responses, function(y) identical(y, responses[[1]]))
     if (! all(sameresp))
         stop("not all models have same response vector")
@@ -74,12 +76,17 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
     # if we get to here, models are nested
     # so can do the tests
 
+    resdf  <- as.numeric(lapply(objectlist, function(x) x$om$df.residual))
+    resdev <- as.numeric(lapply(objectlist, function(x) x$om$deviance))
+
+
     for (i in 2:nmodels) {
         linearity <- objectlist[[i - 1]]$linearity
         if (is.null(linearity)) {
             # MLE for null hypothesis is in original model
             # do conventional test
-        } else if (all(linearity)) {
+
+        } else if (all(!linearity)) {
             # MLE for null hypothesis is completely degenerate
             # do trivial test, test statistic = 0, df = 0, p-value = 1
         } else {
@@ -88,7 +95,6 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
             #
             # must refit alternative hypothesis with same conditioning
             # as null
-
             modmat2 <- objectlist[[i]]$om$x
             resp2 <- objectlist[[i]]$om$y
             offs2 <- objectlist[[i]]$om$offset
@@ -101,5 +107,25 @@ anova.glmdr <- function(object, ..., tolerance = .Machine$double.eps^(5/8),
             }
         }
     }
+
+    table <- data.frame(resdf, resdev, c(NA, abs(diff(resdf))),
+        c(NA, -diff(resdev)))
+    variables <- lapply(objectlist, function(x)
+        paste(deparse(formula(x$om)), collapse="\n") )
+    dimnames(table) <- list(1L:nmodels, c("Resid. Df", "Resid. Dev", "Df",
+        "Deviance"))
+    if(test == "LRT"){
+      table <- cbind(table, c(NA, pchisq(-diff(resdev), df = abs(diff(resdf)), lower = FALSE)))
+      dimnames(table) <- list(1L:nmodels, c("Resid. Df", "Resid. Dev", "Df",
+        "Deviance", "Pr(>Chi)"))
+    }
+
+    title <- "Analysis of Deviance Table\n"
+    topnote <- paste("Model ", format(1L:nmodels),": ",
+        variables, sep="", collapse="\n")   
+
+    structure(table, heading = c(title, topnote),
+        class = c("anova", "data.frame"))
 }
+
 

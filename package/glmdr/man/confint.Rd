@@ -2,7 +2,7 @@
 \alias{confint.glmdr}
 \title{Compute Confidence Intervals for Generalized Linear Model Parameters}
 \usage{
-  confint.glmdr(object, parm, level = 0.95, ...)
+  \method{confint}{glmdr}(object, parm, level = 0.95, ...)
 }
 
 \arguments{
