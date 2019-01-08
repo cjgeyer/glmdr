@@ -1,4 +1,5 @@
 
+
 library(glmdr, lib.loc = "../package/glmdr.Rcheck")
 
 library(glmdr)
@@ -14,9 +15,22 @@ summary(gout)
 inference(gout)
 
 data(quadratic)
-gout <- glmdr(y ~ x + I(x^2), family = "binomial", data = quadratic)
+gout <- glmdr(y ~ x, family = "binomial", data = quadratic)
 summary(gout)
-inference(gout)
+gout2 <- glmdr(y ~ x + I(x^2), family = "binomial", data = quadratic)
+anova(gout, gout2)
+
+out <- glm(y ~ x, family = "binomial", data = quadratic)
+summary(out)
+out2 <- glm(y ~ x + I(x^2), family = "binomial", data = quadratic)
+summary(out2)
+out3 <- glm(y ~ x + I(x^2) + I(x^3), family = "binomial", data = quadratic)
+summary(out3)
+
+anova(out, out2, out3, test = "Rao")
+anova(out, out2, out3, test = "LRT")
+
+
 
 data(catrec)
 gout <- glmdr(y ~ (.)^3, family = "poisson", data = catrec)
@@ -51,5 +65,5 @@ inference(gout4)
 
 # linearity correct?  Compare with Sections 11.5 and 11.7
 # of the supplementary material for Eck and Geyer (submitted).
-subset(bigcategorical, ! gout$linearity)
+subset(bigcategorical, ! gout4$linearity)
 
