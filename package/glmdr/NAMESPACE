@@ -11,5 +11,3 @@ importFrom(Matrix, rankMatrix)
 
 S3method(print, summary.glmdr)
 S3method(summary, glmdr)
-S3method(anova, glmdr)
-S3method(confint, glmdr)

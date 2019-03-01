@@ -109,6 +109,7 @@ inference <- function(object, alpha = 0.05){
       theta.hat <- predict(om)
       oh <- modmat %*% nulls
       y.int <- y[, 1]
+      max.rows <- apply(y, 1, sum)
 
       f2 <- function(xi, k, ...) {
         stopifnot(is.numeric(xi))
@@ -122,7 +123,7 @@ inference <- function(object, alpha = 0.05){
         stopifnot(! linearity[k])
         xi <- cbind(as.vector(xi))
         theta <- theta.hat + oh %*% xi
-        ifelse(y.int == n, theta, - theta)[k]
+        ifelse(y.int == max.rows, theta, - theta)[k]
       }
 
       df2 <- function(xi, k, ...) {
@@ -135,7 +136,7 @@ inference <- function(object, alpha = 0.05){
         stopifnot(as.integer(k) == k)
         stopifnot(k %in% 1:nrow(modmat))
         stopifnot(! linearity[k])
-        ifelse(y.int == n, 1, -1)[k] * as.vector(oh[k, ])
+        ifelse(y.int == max.rows, 1, -1)[k] * as.vector(oh[k, ])
       }
 
       g2 <- function(xi, alpha, ...) {
@@ -151,7 +152,7 @@ inference <- function(object, alpha = 0.05){
           - log1p(exp(- theta)))
         logq <- ifelse(theta < 0, - log1p(exp(theta)),
           - theta - log1p(exp(- theta)))
-        logpboundary <- y.int * logp + (n - y.int) * logq
+        logpboundary <- y.int * logp + (max.rows - y.int) * logq
         logpboundary <- logpboundary[! linearity]
         sum(logpboundary) - log(alpha)
       }
@@ -173,7 +174,7 @@ inference <- function(object, alpha = 0.05){
         # the inequality constraints to be a matrix
         # in this case since g returns a vector of length 1
         # this function should return a 1 by p matrix
-        result <- ifelse(y.int < n, y.int - n * pp, n * qq)
+        result <- ifelse(y.int < max.rows, y.int - max.rows * pp, max.rows * qq)
         result.constr <- result[! linearity]
         oh.constr <- oh[! linearity, ]
         result.constr %*% oh.constr
@@ -191,9 +192,9 @@ inference <- function(object, alpha = 0.05){
         }
 
 
-      bounds <- ifelse(y.int == n, bounds, - bounds)
+      bounds <- ifelse(y.int == max.rows, bounds, - bounds)
       bounds.lower.theta <- ifelse(y.int == 0, -Inf, bounds)
-      bounds.upper.theta <- ifelse(y.int == n, Inf, bounds)
+      bounds.upper.theta <- ifelse(y.int == max.rows, Inf, bounds)
       bounds.lower.theta[linearity] <- NA_real_
       bounds.upper.theta[linearity] <- NA_real_
       #print(data.frame(plus = team.names[team.plus],
@@ -208,8 +209,8 @@ inference <- function(object, alpha = 0.05){
       #  lower = bounds.lower.p, upper = bounds.upper.p),
       #  row.names = FALSE, right = FALSE)
       colnames(modmat)[1] <- "intercept"
-      foo <- data.frame(modmat, y, lower = round(bounds.lower.p, 5), 
-        upper = round(bounds.upper.p, 5))
+      foo <- data.frame(modmat, y, lower = round(max.rows * bounds.lower.p, 5), 
+        upper = round(max.rows * bounds.upper.p, 5))
       out <- subset(foo, !linearity)
     }
 
