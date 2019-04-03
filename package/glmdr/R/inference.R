@@ -19,7 +19,7 @@ inference <- function(object, alpha = 0.05){
 	# For completely degenerate logistic regression 
   if(family == "binomial"){
 
-    if(class(y) == "integer"){
+    if(class(y) == "integer" || class(y) == "numeric"){
 
 	    f <- function(beta, k, ...) {
         stopifnot(is.numeric(beta))
