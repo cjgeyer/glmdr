@@ -88,7 +88,7 @@ solve linear equations.
 foo <- offset.small - offset.large +
     modmat.small %*% beta.hat.small
 bar <- qr(modmat.large)
-beta.hat.large <- qr.solve(bar, beta.hat.small)
+beta.hat.large <- qr.solve(bar, foo)
 \end{verbatim}
 
 \subsection{Derivatives}
@@ -104,9 +104,9 @@ function).  An example of the use of this function is inside R function
 We would do something like
 \begin{verbatim}
 mlogl <- make.mlogl(modmat.large, resp, offset.large, family)
-mout <- mlog(beta.large)
+mout <- mlog(beta.hat.large)
 \end{verbatim}
-where \texttt{beta.large} is as discussed above.
+where \texttt{beta.hat.large} is as discussed above.
 
 Now the Rao test statistic is
 \begin{verbatim}

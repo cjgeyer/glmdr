@@ -959,6 +959,14 @@ right dimension of the null space of the Fisher information matrix
 for the LCM, according to Section~11.4 of the supplementary material
 for \citet{eck-geyer}.
 
+Since some eigenvalues are negative, we cannot repeat Figure~\ref{fig:eigen}.
+Instead we look at what we now hope is a large eigenvalue gap that contains
+the default tolerance
+<<example-vi-gap>>=
+min(eout$values[eout$values >= all.equal.default.tolerance])
+max(eout$values[eout$values < all.equal.default.tolerance])
+@
+
 \subsection{Limiting Conditional Model}
 
 We now determine the linearity vector for the LCM following
