@@ -21,7 +21,7 @@
 inference(object, alpha = 0.05)
 }
 \arguments{
-  \item{object}{A fitted object of class \code{gldr}.}
+  \item{object}{A fitted object of class \code{glmdr}.}
   \item{alpha}{A user-specified error tolerance. The default is set to 
     \code{alpha = 0.05}.}
 }
@@ -46,8 +46,8 @@ inference(object, alpha = 0.05)
 
   This function computes one-sided confidence intervals corresponding to 
   which components of the response are not free (conditioned to be equal 
-  to their observed values) in the LCM.  THis function is not appropriate 
-  when the MLE exists in the OM.
+  to their observed values) in the LCM.  This function is not appropriate 
+  when the MLE exists in the OM.  
 }
 
 \value{
@@ -55,7 +55,7 @@ inference(object, alpha = 0.05)
     confidence intervals for mean-value parameters.}
 }
 \seealso{
-  \code{\link{glmdr}}, \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.
+  \code{\link{glmdr}}, \code{\link{summary.glmdr}}, etc.
 }
 \references{
   Geyer, C. J. (2009)

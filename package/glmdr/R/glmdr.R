@@ -223,7 +223,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
 
     # extract model matrix, response vector, and offset vector
     modmat <- gout$x
-    y <- gout$y
+    #y <- gout$y
     mf <- model.frame(gout)
     resp <- model.response(mf)
     offs <- model.offset(mf)
@@ -259,12 +259,12 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
         # LCM is completely degenerate
         linearity <- rep(FALSE, nrow(modmat))
         return(structure(list(om = gout, linearity = linearity, 
-            modmat = modmat, family = family, y = y),
+            modmat = modmat.drop, family = family, y = resp),
             class = "glmdr"))
     }
 
     # at this point we have some but not all zero eigenvalues
-
+    ## Need to make decision tolerance streamlined
     nulls <- eout$vectors[ , is.zero, drop = FALSE]
     nulls.saturated <- modmat.drop %*% nulls
 
@@ -280,7 +280,8 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     gout.lcm <- eval(call.glm, parent.frame())
 
     return(structure(list(om = gout, lcm = gout.lcm,
-        linearity = linearity, nulls = nulls, modmat = modmat,
-        family = family, y = y), class = "glmdr"))
+        linearity = linearity, nulls = nulls, modmat = modmat.drop, 
+        family = family, y = resp), 
+        class = "glmdr"))
 }
 

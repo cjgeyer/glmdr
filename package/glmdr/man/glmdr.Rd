@@ -13,9 +13,9 @@
 \concept{direction of recession}
 \concept{direction of constancy}
 \description{
-  Fit exponential family generalized linear models (logistic regression
-  or Poisson regression with log link), correctly, even when the maximum
-  likelihood estimate does not exist in the conventional sense.
+  Fit discrete exponential family generalized linear models (logistic 
+  regression or Poisson regression with log link), correctly, even when 
+  the maximum likelihood estimate does not exist in the conventional sense.
   Log-linear models for categorical data analysis are also fit correctly
   by considering them as Poisson regression.
 }
@@ -81,11 +81,8 @@ glmdr(formula, family = c("binomial", "poisson"), data,
 
   The function \code{\link{summary}} (i.e., \code{\link{summary.glmdr}}) can
   be used to obtain or print a summary of the results;
-  the function \code{\link{anova}} (i.e., \code{\link{anova.glmdr}})
-  can do likelihood ratio tests of nested models that are valid even
-  when some MLEs do not exist in the conventional sense;
-  the function \code{\link{confint}} (i.e., \code{\link{confint.glmdr}})
-  can do confidence intervals for canonical or mean-value parameters,
+  the function \code{\link{inference}} 
+  can do confidence intervals for mean-value parameters,
   which are necessarily one-sided for parameters corresponding to
   components of the response conditioned in the LCM to be equal to their
   observed values.
@@ -124,7 +121,7 @@ glmdr(formula, family = c("binomial", "poisson"), data,
   \item{y}{The response vector.}
 }
 \seealso{
-  \code{\link{anova.glmdr}}, \code{\link{summary.glmdr}}, etc.
+  \code{\link{summary.glmdr}}, etc.
 }
 \references{
   Geyer, C. J. (2009)
