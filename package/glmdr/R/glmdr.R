@@ -217,7 +217,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # http://r.789695.n4.nabble.com/Suppress-specific-warnings-td4664591.html
     gout <- withCallingHandlers(eval(call.glm, parent.frame()),
         warning = function(w)
-            if(grepl("fitted .* numerically 0 .* occurred", w$message) ||
+            if(grepl("fitted .* numerically 0.*occurred", w$message) ||
                 grepl("algorithm did not converge", w$message))
                     invokeRestart("muffleWarning"))
 
