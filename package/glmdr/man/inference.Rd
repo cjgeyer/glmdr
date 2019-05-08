@@ -73,7 +73,7 @@ inference(object, alpha = 0.05)
 # example of section 2.4 in Geyer (2009)
 data(sports)
 out <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
-summary(out)
+inference(out)
 }
 \keyword{models}
 \keyword{regression}

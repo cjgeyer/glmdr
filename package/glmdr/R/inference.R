@@ -97,10 +97,9 @@ inference <- function(object, alpha = 0.05){
 
   		bounds.lower.p <- 1 / (1 + exp(- bounds.lower.theta))
   		bounds.upper.p <- 1 / (1 + exp(- bounds.upper.theta))
-      colnames(modmat)[1] <- "intercept"
-  		foo <- data.frame(modmat, y, lower = bounds.lower.p, 
-        upper = bounds.upper.p)
-      out <- subset(foo, ! linearity)
+  		foo <- data.frame(lower = bounds.lower.p,
+                    upper = bounds.upper.p)
+                out <- subset(foo, ! linearity)
 
     }
 
@@ -208,9 +207,8 @@ inference <- function(object, alpha = 0.05){
       #  minus = team.names[team.minus], wins, losses,
       #  lower = bounds.lower.p, upper = bounds.upper.p),
       #  row.names = FALSE, right = FALSE)
-      colnames(modmat)[1] <- "intercept"
-      foo <- data.frame(modmat, y, lower = round(max.rows * bounds.lower.p, 5), 
-        upper = round(max.rows * bounds.upper.p, 5))
+      foo <- data.frame(lower = max.rows * bounds.lower.p, 
+          upper = max.rows * bounds.upper.p)
       out <- subset(foo, !linearity)
     }
 
@@ -289,9 +287,7 @@ inference <- function(object, alpha = 0.05){
       }
 
       uppers.mu <- exp(uppers)
-      #foo <- data.frame(dat, upper = round(uppers.mu, 5))
-      colnames(modmat)[1] <- "intercept"
-      foo <- data.frame(modmat, y, upper = round(uppers.mu, 5))
+      foo <- data.frame(lower = 0, upper = uppers.mu)
       out <- subset(foo, ! linearity)
 
   }
