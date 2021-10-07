@@ -1,0 +1,19 @@
+#' @name catrec
+#' @docType data
+#' @title Contingency Table Data
+#' @description Contingency table data for which the maximum likelihood estimate
+#' does not exist in the conventional sense.
+#' @usage bigcategorical
+#' @format A 2 by 2 by \ldots by 2 (2^7 = 128 cells) contingency table.
+#' Variables are \code{y} the vector of counts and \code{v1} \ldots \code{v7}
+#' which are indicator variables for each dimension.
+#' 
+#' The formula \code{y ~ .} describes the model with only main effects. \cr
+#' The formula \code{y ~ (.)^2} describes the model with all two-way
+#' interactions but no higher-order interactions.  And so forth.
+#' @source   Geyer (2009), Section 2.3.
+#' @references   Geyer, Charles J. (2009)
+#' Likelihood inference in exponential families and directions of recession.
+#' \emph{Electronic Journal of Statistics}, \bold{3}, 259--289 (electronic).
+#' \url{https://projecteuclid.org/euclid.ejs/1239716414}
+NULL

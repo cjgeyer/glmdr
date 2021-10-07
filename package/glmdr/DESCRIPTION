@@ -1,8 +1,8 @@
 Package: glmdr
-Version: 0.1
+Version: 0.2
 Date: 2019-05-02
 Title: Exponential Family Generalized Linear Models Done Right
-Author: Charles J. Geyer <charlie@stat.umn.edu>, Daniel J. Eck <daniel.eck@yale.edu>.
+Author: Charles J. Geyer <charlie@stat.umn.edu>, Suyoung Park <spark148@illinois.edu>, Daniel J. Eck <dje13@illinois.edu>.
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 3.0.0)
 Imports: stats, alabama, Matrix
