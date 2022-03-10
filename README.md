@@ -25,9 +25,10 @@ http://projecteuclid.org/euclid.ejs/1239716414.
 
 and
 
-Eck, Daniel J., and Geyer, Charles J. (submitted).  
-Computationally efficient likelihood inference
-    in exponential families when the maximum likelihood estimator
-    does not exist.  
-https://arxiv.org/abs/1803.11240
+Eck, Daniel J., and Geyer, Charles J. (2021).  
+Computationally efficient likelihood inference in exponential families 
+when the maximum likelihood estimator does not exist.  
+*Electronic Journal of Statistics*, **15**, 2105-2156.  
+DOI: 10.1214/21-EJS1815.
+
 
