@@ -4,13 +4,17 @@
 \alias{glmdr}
 \title{Exponential Family Generalized Linear Models Done Right}
 \usage{
-glmdr(formula, family = c("binomial", "poisson"), data, subset, na.action, offset, contrasts = NULL)
+glmdr(formula, family = c("binomial", "poisson"), data, subset, na.action, offset, contrasts = NULL, 
+                  tolerance = c(1e-8,1e-8))
 }
 \arguments{
 \item{formula}{an object of class \code{"\link{formula}"} (or one that 
 can be coerced to that class): a symbolic description of the
 model to be fitted. See \code{\link[stats]{glm}} and \code{\link[stats]{formula}} 
 for description of the R formula mini-language.}
+
+\item{family}{character string specifying the family, must be one of
+\code{"binomial"} (default) or \code{"poisson"}.  May be abbreviated.}
 
 \item{data}{an optional data frame, list or environment (or object 
 coercible by \code{\link{as.data.frame}} to a data frame) containing
@@ -36,8 +40,8 @@ specified their sum is used.  See \code{\link{model.offset}}.}
 
 \item{contrasts}{an optional list. See the \code{contrasts.arg} of \code{model.matrix.default}.}
 
-\item{familya}{character string specifying the family, must be one of
-\code{"binomial"} (default) or \code{"poisson"}.  May be abbreviated.}
+\item{tolerance}{Optimization tolerances for: 1. determining null vectors of Fisher information; 
+2. determining the linearity (the responses which are not constrained to be their observed value)}
 }
 \value{
 \code{glmdr} returns an object of class inheriting from \code{"glmdr"}.

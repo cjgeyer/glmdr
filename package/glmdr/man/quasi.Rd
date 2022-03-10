@@ -4,10 +4,12 @@
 \name{quasi}
 \alias{quasi}
 \title{Quasi-Complete Separation Example of Agresti}
-\format{Variables are \code{y} the response vector (zero-or-one-valued)
+\format{
+Variables are \code{y} the response vector (zero-or-one-valued)
 and \code{x} the (quantitative) predictor vector.
 
-The formula \code{y ~ x} describes the model.}
+The formula \code{y ~ x} describes the model.
+}
 \source{
 Agresti (2013), Section 6.5.1.
 }

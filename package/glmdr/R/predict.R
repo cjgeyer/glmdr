@@ -3,17 +3,17 @@ ifelse2 <-function(cond,a,b){
   if(cond == TRUE) return(a)
   return(b)
 }
-my_AICc <- function(mod_obj){
+get_AICc <- function(mod_obj){
   p <- mod_obj$df.null - mod_obj$df.residual + 1
   ans <- AIC(mod_obj) + (2*p^2 + 2*p) / (nrow(mod_obj$model) - p -1)
   return(ans)
 }
-my_finder <- function(flag,cur_mod,criteria,alpha){
+get_yhat <- function(flag,cur_mod,criteria,alpha){
   ret <- rep(0,2)
   ret[1] <- tail(predict(cur_mod$om,type="response"),1)
   ret[2] <- criteria(cur_mod$om)
   if(flag){
-    tmp<- ifelse2(tail(!cur_mod$linearity,1),inference(cur_mod,alpha,prediction = TRUE),ret[1])
+    tmp<- ifelse2(tail(!cur_mod$linearity,1),inference(cur_mod,alpha, eps = eps, maxeval = maxeval, prediction = TRUE),ret[1])
     if(length(tmp)!=1){
       if(tmp[,1]==0){
         ret[1] <- tmp[,2]
@@ -30,23 +30,36 @@ my_finder <- function(flag,cur_mod,criteria,alpha){
 #' Exponential Family Generalized Linear Models Done Right
 #' 
 #' Provide the predicted probability based on the method described in Robust model-based estimation for binary outcomes in genomics studies.
-#' Not appropriate when the MLE exists in the original model.
 #' Currently, we only support the logistic function.
-#' @export predict
-#' @param object a fitted object of class \code{glmdr}.
+#' @export
+#' @export predict.glmdr
+#' @param object A fitted object of class \code{glmdr}.
 #' @param newdata An optional data frame having predictors. If omitted, the fitted predictors are used.
-#' @param crit Information Criteria, can be one of "AIC", "BIC", or "AICc."
-#' @param alpha the confidence level. The default is set to \code{alpha = 0.05}.
-#' @param interval eight different methods to obtain a confidence interval. Default is a Wilson interval. See also \link[binom]{binom.confint}
-#' @return A dataframe that includes (1 - alpha) times 100 percent confidence intervals for mean-value parameters for new data points.
-#' @usage predict(object, newdata = new_df, crit="AICc", alpha=0.05)
-#' @export predict
+#' @param crit Information Criteria. It can be one of "AIC", "BIC", or "AICc."
+#' @param alpha The confidence level. The default is set to \code{alpha = 0.05}.
+#' @param eps Convergence tolerance for the Sequential Least Squares Quadratic Programming (SLSQP). The default is set to \code{eps = 1e-10}
+#' @param maxeval Maximum number of iteration for the Sequential Least Squares Quadratic Programming (SLSQP). The default is set to \code{maxeval = 10000}
+#' @return Model-averaged estimated success probability for given newdata.
+#' @usage predict(object, newdata = new_df, crit="AICc", alpha=0.05, eps=1e-10, maxeval = 10000)
+#' @details Model based prediction is different and standard techniques does not work when data separation is present.
+#' In our prediction method when data separation exists, we construct two datasets where one dataset contains training data 
+#' and testing data point with its outcome is 0, and other dataset has training data and testing data point with its outcome is 1. 
+#' We fit two logistic models for each dataset, then compute the information criteria. 
+#' These information criteria are used to compute the weights that indicate which model is more probable given new testing data point. 
+#' Finally, we calculate the model averaged estimate based on predicted probabilities and weights.
+#' 
+#' @references   Park, S., Lipka, A. E., and Eck, D. J. (Preprint)
+#' Robust model-based estimation for binary outcomes in genomics studies
+#' \url{https://arxiv.org/abs/2110.15189}
 #' @examples 
 #'\dontrun{
+#'x <- (1:9 * 10)[-5]
+#'y <- ifelse(x>50,1,0)
 #'mod <- glmdr(y~x, family="binomial")
-#'predict(mod, newdata = new_df, cirt="AICc")
+#'predict(mod, newdata = data.frame(x=65), crit="AICc")
 #'}
-predict.glmdr <- function(object, newdata = NULL, crit="AICc",alpha=0.05){
+
+predict.glmdr <- function(object, newdata = NULL, crit="AICc",alpha=0.05, eps=1e-10, maxeval = 10000){
   if(object$om$family$link != "logit"){
     stop("Current glmdr only supports the prediction for logistic model.")
   }
@@ -59,7 +72,7 @@ predict.glmdr <- function(object, newdata = NULL, crit="AICc",alpha=0.05){
     criteria <- AIC
   }
   if(crit=="AICc"){
-    criteria <- my_AICc
+    criteria <- get_AICc
   }
   ret_vec <- rep(NA,nrow(newdata))
   stopifnot((ncol(newdata)+1)==ncol(object$om$model))
@@ -89,8 +102,8 @@ predict.glmdr <- function(object, newdata = NULL, crit="AICc",alpha=0.05){
     glmdr_mod_y1 <- glmdr(formula(object$om),data=new_1,family="binomial")
     y0_glmdr_flag <- ifelse2(is.null(glmdr_mod_y0$lcm),FALSE,TRUE) #If flag = FALSE, use om
     y1_glmdr_flag <- ifelse2(is.null(glmdr_mod_y1$lcm),FALSE,TRUE)
-    ret_y0 <- my_finder(flag=y0_glmdr_flag,cur_mod=glmdr_mod_y0,criteria,alpha=alpha)
-    ret_y1 <- my_finder(flag=y1_glmdr_flag,cur_mod=glmdr_mod_y1,criteria,alpha=alpha)
+    ret_y0 <- get_yhat(flag=y0_glmdr_flag,cur_mod=glmdr_mod_y0,criteria,alpha=alpha)
+    ret_y1 <- get_yhat(flag=y1_glmdr_flag,cur_mod=glmdr_mod_y1,criteria,alpha=alpha)
     phat_y0 <- ret_y0[1]
     phat_y1 <- ret_y1[1]
     #3. Obtain IC values for each model (IC is shorthand for information criterion, examples include BIC, AIC, AICc).

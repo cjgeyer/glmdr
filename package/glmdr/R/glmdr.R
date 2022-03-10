@@ -198,7 +198,7 @@ newton <- function(beta, mlogl)
 #' can be coerced to that class): a symbolic description of the
 #' model to be fitted. See \code{\link[stats]{glm}} and \code{\link[stats]{formula}} 
 #' for description of the R formula mini-language.
-#' @param familya character string specifying the family, must be one of
+#' @param family character string specifying the family, must be one of
 #' \code{"binomial"} (default) or \code{"poisson"}.  May be abbreviated.
 #' @param data an optional data frame, list or environment (or object 
 #' coercible by \code{\link{as.data.frame}} to a data frame) containing
@@ -219,6 +219,9 @@ newton <- function(beta, mlogl)
 #' included in the formula instead or as well, and if more than one is
 #' specified their sum is used.  See \code{\link{model.offset}}.
 #' @param contrasts an optional list. See the \code{contrasts.arg} of \code{model.matrix.default}.
+#' @param tolerance a vector with two elements. Optimization tolerances for: 1. determining null vectors 
+#' of Fisher information; 2. determining the linearity (the responses which are not constrained to be 
+#' their observed value)
 #' @return \code{glmdr} returns an object of class inheriting from \code{"glmdr"}.
 #' An object of class \code{"glmdr"} is a list containing some or all of the
 #' following components:
@@ -263,7 +266,8 @@ newton <- function(beta, mlogl)
 #' out <- glmdr(cbind(wins, losses) ~ 0 + ., family = "binomial", data = sports)
 #' inference(out)
 glmdr <- function(formula, family = c("binomial", "poisson"), data,
-                     subset, na.action, offset, contrasts = NULL)
+                  subset, na.action, offset, contrasts = NULL, 
+                  tolerance = c(1e-8,1e-8))
 {
     call <- match.call()
     family <- match.arg(family)
@@ -294,6 +298,8 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     mf <- model.frame(gout)
     resp <- model.response(mf)
     offs <- model.offset(mf)
+    tol1 <- tolerance[1]
+    tol2 <- tolerance[2]    
     
     # have to deal with dropped predictors
     outies <- is.na(coefficients(gout))
@@ -303,7 +309,7 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # do one newton-with-line-search iteration
     # or should we do more?
     mlogl <- make.mlogl(modmat.drop, resp, offs, family)
-    
+
     tryCatch({
         beta.drop <- newton(beta.drop, mlogl)
     }, error=function(e){
@@ -325,7 +331,8 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     # use fixed tolerance
     # or should we make this an optional argument?
     # or should multiply by max(eout$values) ?? (if large) !!
-    is.zero <- eout$values < (.Machine$double.eps)^(5 / 8)
+    # (.Machine$double.eps)^(5 / 8)
+    is.zero <- eout$values < tol1 
     
     if (! any(is.zero)) {
         # nothing left to do
@@ -349,8 +356,9 @@ glmdr <- function(formula, family = c("binomial", "poisson"), data,
     
     # use same tolerance here as above
     # or different?
-    linearity <- apply(abs(nulls.saturated), 1, max) <
-        (.Machine$double.eps)^(3 / 4)
+    #         (.Machine$double.eps)^(3 / 4)
+    linearity <- apply(abs(nulls.saturated), 1, max) < tol2
+
     
     # now we need to do the MLE for the LCM
     # call glm again

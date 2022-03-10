@@ -4,9 +4,11 @@
 \name{complete}
 \alias{complete}
 \title{Complete Separation Example of Agresti}
-\format{Variables are y the response vector (zero-or-one-valued) and x the (quantitative) predictor vector.
+\format{
+Variables are y the response vector (zero-or-one-valued) and x the (quantitative) predictor vector.
 
-The formula y ~ x describes the model.}
+The formula y ~ x describes the model.
+}
 \source{
 Agresti (2013), Section 6.5.1.
 }

@@ -4,13 +4,15 @@
 \name{catrec}
 \alias{catrec}
 \title{Contingency Table Data}
-\format{A 2 by 2 by \ldots by 2 (2^7 = 128 cells) contingency table.
+\format{
+A 2 by 2 by \ldots by 2 (2^7 = 128 cells) contingency table.
 Variables are \code{y} the vector of counts and \code{v1} \ldots \code{v7}
 which are indicator variables for each dimension.
 
 The formula \code{y ~ .} describes the model with only main effects. \cr
 The formula \code{y ~ (.)^2} describes the model with all two-way
-interactions but no higher-order interactions.  And so forth.}
+interactions but no higher-order interactions.  And so forth.
+}
 \source{
 Geyer (2009), Section 2.3.
 }

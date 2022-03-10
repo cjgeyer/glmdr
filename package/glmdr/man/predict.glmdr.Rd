@@ -4,29 +4,46 @@
 \alias{predict.glmdr}
 \title{Exponential Family Generalized Linear Models Done Right}
 \usage{
-predict(object, newdata = new_df, cirt="AICc")
+predict(object, newdata = new_df, crit="AICc", alpha=0.05, eps=1e-10, maxeval = 10000)
 }
 \arguments{
-\item{object}{a fitted object of class \code{glmdr}.}
+\item{object}{A fitted object of class \code{glmdr}.}
 
 \item{newdata}{An optional data frame having predictors. If omitted, the fitted predictors are used.}
 
-\item{crit}{Information Criteria, can be one of "AIC", "BIC", or "AICc."}
+\item{crit}{Information Criteria. It can be one of "AIC", "BIC", or "AICc."}
 
-\item{alpha}{the confidence level. The default is set to \code{alpha = 0.05}.}
+\item{alpha}{The confidence level. The default is set to \code{alpha = 0.05}.}
 
-\item{interval}{eight different methods to obtain a confidence interval. Default is a Wilson interval. See also \link[binom]{binom.confint}}
+\item{eps}{Convergence tolerance for the Sequential Least Squares Quadratic Programming (SLSQP). The default is set to \code{eps = 1e-10}}
+
+\item{maxeval}{Maximum number of iteration for the Sequential Least Squares Quadratic Programming (SLSQP). The default is set to \code{maxeval = 10000}}
 }
 \value{
-A dataframe that includes (1 - alpha) times 100 percent confidence intervals for mean-value parameters for new data points.
+Model-averaged estimated success probability for given newdata.
 }
 \description{
-Provide the prediction as a one-sided confidence intervals given new data.
-Not appropriate when the MLE exists in the original model.
+Provide the predicted probability based on the method described in Robust model-based estimation for binary outcomes in genomics studies.
+Currently, we only support the logistic function.
+}
+\details{
+Model based prediction is different and standard techniques does not work when data separation is present.
+In our prediction method when data separation exists, we construct two datasets where one dataset contains training data 
+and testing data point with its outcome is 0, and other dataset has training data and testing data point with its outcome is 1. 
+We fit two logistic models for each dataset, then compute the information criteria. 
+These information criteria are used to compute the weights that indicate which model is more probable given new testing data point. 
+Finally, we calculate the model averaged estimate based on predicted probabilities and weights.
 }
 \examples{
 \dontrun{
+x <- (1:9 * 10)[-5]
+y <- ifelse(x>50,1,0)
 mod <- glmdr(y~x, family="binomial")
-predict(mod, newdata = new_df, cirt="AICc")
+predict(mod, newdata = data.frame(x=65), crit="AICc")
 }
+}
+\references{
+Park, S., Lipka, A. E., and Eck, D. J. (Preprint)
+Robust model-based estimation for binary outcomes in genomics studies
+\url{https://arxiv.org/abs/2110.15189}
 }

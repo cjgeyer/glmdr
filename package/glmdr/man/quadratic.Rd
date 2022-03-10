@@ -4,10 +4,12 @@
 \name{quadratic}
 \alias{quadratic}
 \title{Quadratic Logistic Regression Data}
-\format{Variables are \code{y} the response vector (zero-or-one-valued)
+\format{
+Variables are \code{y} the response vector (zero-or-one-valued)
 and \code{x} the (quantitative) predictor vector.
 
-The formula \code{y ~ x + I(x^2)} describes the model.}
+The formula \code{y ~ x + I(x^2)} describes the model.
+}
 \source{
 Geyer (2009), Section 2.2.
 }
