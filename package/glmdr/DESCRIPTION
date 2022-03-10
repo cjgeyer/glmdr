@@ -4,7 +4,7 @@ Title: Exponential Family Generalized Linear Models Done Right
 Version: 0.3
 Date: 2021-03-02
 Author: Charles J. Geyer <charlie@stat.umn.edu>, Suyoung Park <spark148@illinois.edu>, Daniel J. Eck <dje13@illinois.edu>.
-Maintainer: Suyoung Park <spark148@illinois.edu>
+Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 3.6.1)
 Imports: stats, nloptr
 ByteCompile: TRUE
