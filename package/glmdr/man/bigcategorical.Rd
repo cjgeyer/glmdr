@@ -4,13 +4,15 @@
 \name{bigcategorical}
 \alias{bigcategorical}
 \title{Contingency Table Data}
-\format{A 4 by 4 by 4 by 4 by 4 (4^5 = 1024 cells) contingency table.
+\format{
+A 4 by 4 by 4 by 4 by 4 (4^5 = 1024 cells) contingency table.
 Variables are \code{y} the vector of counts and \code{x1} \ldots \code{x5}
 which are factor variables for each dimension.
 
 The formula \code{y ~ .} describes the model with only main effects. \cr
 The formula \code{y ~ (.)^2} describes the model with all two-way
-interactions but no higher-order interactions.  And so forth.}
+interactions but no higher-order interactions.  And so forth.
+}
 \source{
 Eck, D.~J. and Geyer, C.~J. (2018)
 Two data sets that are examples for an article titled

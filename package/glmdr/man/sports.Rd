@@ -4,11 +4,13 @@
 \name{sports}
 \alias{sports}
 \title{Sports League Table Data}
-\format{Each team plays 2 games against every other team.
+\format{
+Each team plays 2 games against every other team.
 The response is the matrix \code{cbind(wins, losses)}.
 The predictor variables for a Bradley-Terry model are the rest of the columns of the data frame.
 
-The formula \code{cbind(wins, losses) ~ 0 + .} describes the model.}
+The formula \code{cbind(wins, losses) ~ 0 + .} describes the model.
+}
 \source{
 Geyer (2009), Section 2.4.
 }

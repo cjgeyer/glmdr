@@ -53,8 +53,8 @@ Geyer, C. J. (2009)
 Likelihood inference in exponential families and directions of recession.
 \emph{Electronic Journal of Statistics}, \bold{3}, 259--289.
 
-Eck, D. J. and Geyer, C. J. (submitted)
+Eck, D. J. and Geyer, C. J. (2021)
 Computationally efficient likelihood inference
 in exponential families when the maximum likelihood estimator
-does not exist. \url{https://arxiv.org/abs/1803.11240}
+does not exist. \emph{Electronic Journal of Statistics}, \bold{15(1)}, 2105--2156.
 }
